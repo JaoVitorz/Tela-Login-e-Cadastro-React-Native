@@ -9,13 +9,15 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { useState } from "react";
-import { Link } from "expo-router";
+import { Link, router } from "expo-router";
 import { PawPrint, Building2, Stethoscope, type LucideIcon } from "lucide-react-native";
 import { ValidationError } from "yup";
 import { Input } from "@/components/input";
 import { Button } from "@/components/Buttom";
 import { colors } from "@/theme/colors";
 import { getRegistroSchema, type TipoRegistro } from "@/schema/registroschema";
+import { authApi, extractApiErrorMessage } from "@/services/api";
+import { tokenStorage } from "@/services/tokenStorage";
 import React from "react";
 
 const profileOptions: Array<{ value: TipoRegistro; label: string; icon: LucideIcon }> = [
@@ -111,14 +113,24 @@ export default function Signup() {
 
     setSubmitting(true);
     try {
-      // TODO: conectar ao backend (POST /auth/registro) na próxima etapa.
-      // Bugs conhecidos a tratar nessa integração:
-      // 1) backend UserTipo só aceita adotante|cliente|admin (ong/veterinario -> mapear para cliente)
-      // 2) userModel não persiste documento/crmv ainda
-      await new Promise((resolve) => setTimeout(resolve, 600));
-      Alert.alert("Sucesso", "Cadastro realizado com sucesso!");
-    } catch {
-      setServerError("Erro ao cadastrar. Tente novamente.");
+      const nome = tipoUsuario === "ong"
+        ? `${values.nome} - ${values.sobrenome}`.trim()
+        : `${values.nome} ${values.sobrenome}`.trim();
+      const response = await authApi.register({
+        nome,
+        email: values.email,
+        senha: values.senha,
+        tipo: tipoUsuario,
+        ...(tipoUsuario === "ong"
+          ? { cnpj: values.documento.replace(/\D/g, "") }
+          : { cpf: values.documento.replace(/\D/g, "") }),
+        ...(tipoUsuario === "veterinario" ? { crmv: values.crmv } : {}),
+      });
+      await tokenStorage.setToken(response.token);
+      Alert.alert("Conta criada", "Bem-vindo(a) à comunidade PetJoyful!");
+      router.replace("/(tabs)");
+    } catch (error) {
+      setServerError(extractApiErrorMessage(error));
     } finally {
       setSubmitting(false);
     }

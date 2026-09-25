@@ -9,7 +9,7 @@ import {
   Alert,
 } from "react-native";
 import { useState } from "react";
-import { Link } from "expo-router";
+import { Link, router } from "expo-router";
 import { Input } from "@/components/input";
 import { Button } from "@/components/Buttom";
 import { colors } from "@/theme/colors";
@@ -21,20 +21,22 @@ export default function Index() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
 
   async function handleSignIn() {
     if (!email.trim() || !password.trim()) {
-      return Alert.alert("Erro", "Preencha todos os campos");
+      setLoginError("Preencha todos os campos");
+      return;
     }
 
+    setLoginError(null);
     setLoading(true);
     try {
-      const response = await authApi.login({ email, senha: password });
+      const response = await authApi.login({ email: email.trim(), senha: password });
       await tokenStorage.setToken(response.token);
-      Alert.alert("Sucesso", "Login realizado com sucesso");
-      // TODO: navegar para a Home / rota protegida quando existir
+      router.replace("/(tabs)");
     } catch (error) {
-      Alert.alert("Erro", extractApiErrorMessage(error));
+      setLoginError(extractApiErrorMessage(error));
     } finally {
       setLoading(false);
     }
@@ -69,15 +71,26 @@ export default function Index() {
                 placeholder="Email ou nome de usuário"
                 keyboardType="email-address"
                 autoCapitalize="none"
-                onChangeText={setEmail}
+                value={email}
+                onChangeText={(value) => {
+                  setEmail(value);
+                  setLoginError(null);
+                }}
                 style={styles.formInput}
               />
               <Input
                 placeholder="Digite sua senha..."
                 secureTextEntry
-                onChangeText={setPassword}
+                value={password}
+                onChangeText={(value) => {
+                  setPassword(value);
+                  setLoginError(null);
+                }}
                 style={styles.formInput}
               />
+              {loginError && (
+                <Text style={styles.loginError}>{loginError}</Text>
+              )}
               <Button
                 label={loading ? "Carregando..." : "Login"}
                 variant="login"
@@ -113,7 +126,7 @@ export default function Index() {
             </Text>
           </View>
 
-          <View style={styles.pageFooter}>
+            <View style={styles.pageFooter}>
             <Text style={styles.pageFooterLink}>Sobre</Text>
             <Text style={styles.pageFooterLink}>Ajuda</Text>
             <Text style={styles.pageFooterLink}>Privacidade</Text>
@@ -176,6 +189,11 @@ const styles = StyleSheet.create({
     borderWidth: 0,
     borderRadius: 5,
     height: 46,
+  },
+  loginError: {
+    color: colors.white,
+    fontSize: 13,
+    textAlign: "center",
   },
   divider: {
     flexDirection: "row",

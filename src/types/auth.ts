@@ -17,7 +17,9 @@ export interface AuthUser {
 }
 
 // Formato de usuário retornado por GET /me (userModel completo, sem "senha")
-export interface ProfileUser extends AuthUser {
+export interface ProfileUser extends Omit<AuthUser, "id"> {
+  id?: string;
+  _id?: string;
   [key: string]: unknown;
 }
 
@@ -26,11 +28,7 @@ export interface RegisterPayload {
   email: string;
   senha: string;
   tipo: TipoRegistro;
-  // Coletados na UI mas ainda não persistidos pelo backend (bug conhecido:
-  // userModel não tem esses campos). Enviados mesmo assim, com os mesmos
-  // nomes de chave que o frontend Next.js já usa (cpf/cnpj/crmv), pois o
-  // controller os ignora silenciosamente — fica pronto para quando o
-  // backend for corrigido.
+  // Coletados na UI, mas ainda não persistidos pelo backend.
   cpf?: string;
   cnpj?: string;
   crmv?: string;

@@ -21,7 +21,7 @@ import axios, { AxiosError } from "axios";
 // - Em emulador Android use 10.0.2.2:5000 (emulador padrão) ou o IP da máquina.
 // - Em dispositivo físico, use o IP da sua máquina (ex: http://192.168.0.10:5000).
 const DEFAULT_PROD = "https://pet-joyful-backend.onrender.com";
-const DEV_LOCAL = "http://localhost:5000";
+const DEV_LOCAL = ["http://localhost:5000", "http://localhost:3004"];
 
 const API_URL =
   process.env.EXPO_PUBLIC_API_URL || (typeof __DEV__ !== 'undefined' && __DEV__ ? DEV_LOCAL : DEFAULT_PROD);
@@ -90,21 +90,20 @@ export function extractApiErrorMessage(error: unknown): string {
 export const authApi = {
   async register(data: RegisterPayload): Promise<AuthResponse> {
     const payload = {
-      nome: data.nome,
-      email: data.email,
+      nome: data.nome.trim(),
+      email: data.email.trim().toLowerCase(),
       senha: data.senha,
       tipo: toBackendTipo(data.tipo),
-      // Enviados mesmo sem persistência no backend ainda (ver types/auth.ts)
-      cpf: data.cpf,
-      cnpj: data.cnpj,
-      crmv: data.crmv,
     };
     const response = await api.post<AuthResponse>("/register", payload);
     return response.data;
   },
 
   async login(data: LoginPayload): Promise<AuthResponse> {
-    const response = await api.post<AuthResponse>("/login", data);
+    const response = await api.post<AuthResponse>("/login", {
+      email: data.email.trim().toLowerCase(),
+      senha: data.senha,
+    });
     return response.data;
   },
 
