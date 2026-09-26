@@ -3,6 +3,69 @@ import { ScrollView, StyleSheet, Text, View } from "react-native";
 import React from "react";
 import { CalendarDays, MapPin } from "lucide-react-native";
 import { colors } from "@/theme/colors";
-const events=[{title:"Feira de adoção",date:"14 de setembro · 10h",place:"Parque Ibirapuera"},{title:"Mutirão de vacinação",date:"22 de setembro · 9h",place:"Centro Comunitário"}];
-export default function EventsScreen(){return <ScrollView style={styles.page} contentContainerStyle={styles.content}><Text style={styles.heading}>Eventos e campanhas</Text><Text style={styles.subtitle}>Participe e faça a diferença na vida dos pets.</Text>{events.map(event=><View style={styles.card} key={event.title}><View style={styles.icon}><CalendarDays color={colors.white} size={25}/></View><View style={styles.info}><Text style={styles.title}>{event.title}</Text><Text style={styles.date}>{event.date}</Text><View style={styles.place}><MapPin color={colors.action} size={15}/><Text>{event.place}</Text></View></View></View>)}</ScrollView>}
-const styles=StyleSheet.create({page:{flex:1,backgroundColor:colors.background},content:{padding:16,gap:13},heading:{fontSize:25,fontWeight:"800",color:colors.textDark},subtitle:{color:colors.textMuted,marginBottom:8},card:{backgroundColor:colors.white,borderRadius:14,padding:15,flexDirection:"row",gap:14,elevation:2,shadowColor:"#000",shadowOpacity:.06,shadowRadius:6},icon:{width:52,height:52,borderRadius:12,backgroundColor:colors.action,alignItems:"center",justifyContent:"center"},info:{gap:6,flex:1},title:{fontWeight:"800",fontSize:17,color:colors.textDark},date:{color:colors.loginMuted},place:{flexDirection:"row",gap:5,alignItems:"center"}});
+const events = [
+  {
+    title: "Feira de adoção",
+    date: "14 de setembro · 10h",
+    place: "Parque Ibirapuera",
+  },
+  {
+    title: "Mutirão de vacinação",
+    date: "22 de setembro · 9h",
+    place: "Centro Comunitário",
+  },
+];
+export default function EventsScreen() {
+  return (
+    <ScrollView style={styles.page} contentContainerStyle={styles.content}>
+      <Text style={styles.heading}>Eventos e campanhas</Text>
+      <Text style={styles.subtitle}>
+        Participe e faça a diferença na vida dos pets.
+      </Text>
+      {events.map((event) => (
+        <View style={styles.card} key={event.title}>
+          <View style={styles.icon}>
+            <CalendarDays color={colors.white} size={25} />
+          </View>
+          <View style={styles.info}>
+            <Text style={styles.title}>{event.title}</Text>
+            <Text style={styles.date}>{event.date}</Text>
+            <View style={styles.place}>
+              <MapPin color={colors.action} size={15} />
+              <Text>{event.place}</Text>
+            </View>
+          </View>
+        </View>
+      ))}
+    </ScrollView>
+  );
+}
+const styles = StyleSheet.create({
+  page: { flex: 1, backgroundColor: colors.background },
+  content: { padding: 16, gap: 13 },
+  heading: { fontSize: 25, fontWeight: "800", color: colors.textDark },
+  subtitle: { color: colors.textMuted, marginBottom: 8 },
+  card: {
+    backgroundColor: colors.white,
+    borderRadius: 14,
+    padding: 15,
+    flexDirection: "row",
+    gap: 14,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+  },
+  icon: {
+    width: 52,
+    height: 52,
+    borderRadius: 12,
+    backgroundColor: colors.action,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  info: { gap: 6, flex: 1 },
+  title: { fontWeight: "800", fontSize: 17, color: colors.textDark },
+  date: { color: colors.loginMuted },
+  place: { flexDirection: "row", gap: 5, alignItems: "center" },
+});

@@ -1,9 +1,5 @@
 export type EventType =
-  | "adoption_fair"
-  | "vaccination_campaign"
-  | "awareness"
-  | "workshop"
-  | "other";
+  "adoption_fair" | "vaccination_campaign" | "awareness" | "workshop" | "other";
 
 export type EventStatus = "upcoming" | "ongoing" | "completed" | "cancelled";
 

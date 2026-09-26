@@ -2,6 +2,67 @@ import { ScrollView, StyleSheet, Text, View } from "react-native";
 import React from "react";
 import { MapPin, PawPrint } from "lucide-react-native";
 import { colors } from "@/theme/colors";
-const pets=[{name:"Luna",detail:"Fêmea · 2 anos · Vacinada",place:"São Paulo, SP"},{name:"Bento",detail:"Macho · 1 ano · Castrado",place:"São Paulo, SP"},{name:"Mel",detail:"Fêmea · 3 anos · Vacinada",place:"Santo André, SP"}];
-export default function AdoptionsScreen(){return <ScrollView style={styles.page} contentContainerStyle={styles.content}><Text style={styles.heading}>Pets para adoção</Text><Text style={styles.subtitle}>Conheça animais que esperam por uma família.</Text>{pets.map(pet=><View style={styles.card} key={pet.name}><View style={styles.avatar}><PawPrint color={colors.white} size={32}/></View><View style={styles.info}><Text style={styles.name}>{pet.name}</Text><Text style={styles.detail}>{pet.detail}</Text><View style={styles.location}><MapPin color={colors.action} size={15}/><Text style={styles.locationText}>{pet.place}</Text></View></View></View>)}</ScrollView>}
-const styles=StyleSheet.create({page:{flex:1,backgroundColor:colors.background},content:{padding:16,gap:12},heading:{fontSize:25,fontWeight:"800",color:colors.textDark},subtitle:{color:colors.textMuted,marginBottom:6},card:{backgroundColor:colors.white,borderRadius:14,padding:14,flexDirection:"row",gap:14,elevation:2,shadowColor:"#000",shadowOpacity:.06,shadowRadius:6},avatar:{height:76,width:76,borderRadius:38,alignItems:"center",justifyContent:"center",backgroundColor:colors.primary},info:{justifyContent:"center",gap:5,flex:1},name:{fontSize:19,fontWeight:"800",color:colors.textDark},detail:{color:colors.loginMuted},location:{flexDirection:"row",gap:5,alignItems:"center"},locationText:{fontSize:13,color:colors.textMuted}});
+const pets = [
+  { name: "Luna", detail: "Fêmea · 2 anos · Vacinada", place: "São Paulo, SP" },
+  { name: "Bento", detail: "Macho · 1 ano · Castrado", place: "São Paulo, SP" },
+  {
+    name: "Mel",
+    detail: "Fêmea · 3 anos · Vacinada",
+    place: "Santo André, SP",
+  },
+];
+export default function AdoptionsScreen() {
+  return (
+    <ScrollView style={styles.page} contentContainerStyle={styles.content}>
+      <Text style={styles.heading}>Pets para adoção</Text>
+      <Text style={styles.subtitle}>
+        Conheça animais que esperam por uma família.
+      </Text>
+      {pets.map((pet) => (
+        <View style={styles.card} key={pet.name}>
+          <View style={styles.avatar}>
+            <PawPrint color={colors.white} size={32} />
+          </View>
+          <View style={styles.info}>
+            <Text style={styles.name}>{pet.name}</Text>
+            <Text style={styles.detail}>{pet.detail}</Text>
+            <View style={styles.location}>
+              <MapPin color={colors.action} size={15} />
+              <Text style={styles.locationText}>{pet.place}</Text>
+            </View>
+          </View>
+        </View>
+      ))}
+    </ScrollView>
+  );
+}
+const styles = StyleSheet.create({
+  page: { flex: 1, backgroundColor: colors.background },
+  content: { padding: 16, gap: 12 },
+  heading: { fontSize: 25, fontWeight: "800", color: colors.textDark },
+  subtitle: { color: colors.textMuted, marginBottom: 6 },
+  card: {
+    backgroundColor: colors.white,
+    borderRadius: 14,
+    padding: 14,
+    flexDirection: "row",
+    gap: 14,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+  },
+  avatar: {
+    height: 76,
+    width: 76,
+    borderRadius: 38,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.primary,
+  },
+  info: { justifyContent: "center", gap: 5, flex: 1 },
+  name: { fontSize: 19, fontWeight: "800", color: colors.textDark },
+  detail: { color: colors.loginMuted },
+  location: { flexDirection: "row", gap: 5, alignItems: "center" },
+  locationText: { fontSize: 13, color: colors.textMuted },
+});

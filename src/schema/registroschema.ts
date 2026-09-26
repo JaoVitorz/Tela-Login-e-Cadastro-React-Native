@@ -6,12 +6,18 @@ export type TipoRegistro = "adotante" | "ong" | "veterinario";
 export const getRegistroSchema = (tipo: TipoRegistro) => {
   return Yup.object().shape({
     nome: Yup.string()
-      .required(tipo === "ong" ? "Nome da ONG é obrigatório" : "Nome é obrigatório")
+      .required(
+        tipo === "ong" ? "Nome da ONG é obrigatório" : "Nome é obrigatório",
+      )
       .min(2, "Mínimo 2 caracteres")
       .max(80, "Máximo 80 caracteres"),
 
     sobrenome: Yup.string()
-      .required(tipo === "ong" ? "Responsável é obrigatório" : "Sobrenome é obrigatório")
+      .required(
+        tipo === "ong"
+          ? "Responsável é obrigatório"
+          : "Sobrenome é obrigatório",
+      )
       .min(2, "Mínimo 2 caracteres")
       .max(80, "Máximo 80 caracteres"),
 
@@ -26,7 +32,7 @@ export const getRegistroSchema = (tipo: TipoRegistro) => {
           return tipo === "ong"
             ? cleanedValue.length === 14
             : cleanedValue.length === 11;
-        }
+        },
       ),
 
     email: Yup.string()
@@ -37,7 +43,10 @@ export const getRegistroSchema = (tipo: TipoRegistro) => {
     ...(tipo === "veterinario" && {
       crmv: Yup.string()
         .required("CRMV é obrigatório")
-        .matches(/^[A-Z]{2}[0-9]{4,6}$/i, "Formato inválido (Ex: SP12345 ou SP123456)"),
+        .matches(
+          /^[A-Z]{2}[0-9]{4,6}$/i,
+          "Formato inválido (Ex: SP12345 ou SP123456)",
+        ),
     }),
 
     senha: Yup.string()
@@ -45,7 +54,7 @@ export const getRegistroSchema = (tipo: TipoRegistro) => {
       .min(8, "Mínimo 8 caracteres")
       .matches(
         /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-        "Deve conter pelo menos: 1 letra maiúscula, 1 minúscula e 1 número"
+        "Deve conter pelo menos: 1 letra maiúscula, 1 minúscula e 1 número",
       )
       .max(50, "Máximo 50 caracteres"),
 

@@ -10,7 +10,12 @@ import {
 } from "react-native";
 import { useState } from "react";
 import { Link, router } from "expo-router";
-import { PawPrint, Building2, Stethoscope, type LucideIcon } from "lucide-react-native";
+import {
+  PawPrint,
+  Building2,
+  Stethoscope,
+  type LucideIcon,
+} from "lucide-react-native";
 import { ValidationError } from "yup";
 import { Input } from "@/components/input";
 import { Button } from "@/components/Buttom";
@@ -20,7 +25,11 @@ import { authApi, extractApiErrorMessage } from "@/services/api";
 import { tokenStorage } from "@/services/tokenStorage";
 import React from "react";
 
-const profileOptions: Array<{ value: TipoRegistro; label: string; icon: LucideIcon }> = [
+const profileOptions: Array<{
+  value: TipoRegistro;
+  label: string;
+  icon: LucideIcon;
+}> = [
   { value: "adotante", label: "Adotante", icon: PawPrint },
   { value: "ong", label: "ONG", icon: Building2 },
   { value: "veterinario", label: "Veterinario", icon: Stethoscope },
@@ -73,13 +82,18 @@ const initialValues: FormValues = {
 export default function Signup() {
   const [tipoUsuario, setTipoUsuario] = useState<TipoRegistro>("adotante");
   const [values, setValues] = useState<FormValues>(initialValues);
-  const [errors, setErrors] = useState<Partial<Record<keyof FormValues, string>>>({});
+  const [errors, setErrors] = useState<
+    Partial<Record<keyof FormValues, string>>
+  >({});
   const [serverError, setServerError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   const copy = fieldCopy[tipoUsuario];
 
-  function setField<K extends keyof FormValues>(field: K, value: FormValues[K]) {
+  function setField<K extends keyof FormValues>(
+    field: K,
+    value: FormValues[K],
+  ) {
     setValues((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: undefined }));
@@ -96,7 +110,9 @@ export default function Signup() {
     setServerError(null);
 
     try {
-      await getRegistroSchema(tipoUsuario).validate(values, { abortEarly: false });
+      await getRegistroSchema(tipoUsuario).validate(values, {
+        abortEarly: false,
+      });
       setErrors({});
     } catch (validationError) {
       if (validationError instanceof ValidationError) {
@@ -113,9 +129,10 @@ export default function Signup() {
 
     setSubmitting(true);
     try {
-      const nome = tipoUsuario === "ong"
-        ? `${values.nome} - ${values.sobrenome}`.trim()
-        : `${values.nome} ${values.sobrenome}`.trim();
+      const nome =
+        tipoUsuario === "ong"
+          ? `${values.nome} - ${values.sobrenome}`.trim()
+          : `${values.nome} ${values.sobrenome}`.trim();
       const response = await authApi.register({
         nome,
         email: values.email,
@@ -301,7 +318,9 @@ export default function Signup() {
             )}
 
             <Button
-              label={submitting ? "Criando conta..." : "Criar conta no PetJoyful"}
+              label={
+                submitting ? "Criando conta..." : "Criar conta no PetJoyful"
+              }
               variant="action"
               loading={submitting}
               onPress={handleSignUp}

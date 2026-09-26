@@ -5,14 +5,42 @@ import { CalendarDays, House, PawPrint, UserRound } from "lucide-react-native";
 import { colors } from "@/theme/colors";
 import { profileApi } from "@/services/profileApi";
 import { authApi } from "@/services/api";
-import { getStoredProfilePhoto, persistProfilePhoto, setProfilePhoto, useProfilePhoto } from "@/services/profilePhotoStore";
+import {
+  getStoredProfilePhoto,
+  persistProfilePhoto,
+  setProfilePhoto,
+  useProfilePhoto,
+} from "@/services/profilePhotoStore";
 
-function ProfileTabIcon({ color, size, focused }: { color: string; size: number; focused: boolean }) {
+function ProfileTabIcon({
+  color,
+  size,
+  focused,
+}: {
+  color: string;
+  size: number;
+  focused: boolean;
+}) {
   const photo = useProfilePhoto();
   const [failed, setFailed] = useState(false);
   useEffect(() => setFailed(false), [photo]);
   if (photo && !failed) {
-    return <Image key={photo} source={{ uri: photo }} onError={() => setFailed(true)} style={[styles.profileTabPhoto, { width: size + 2, height: size + 2, borderRadius: (size + 2) / 2, borderColor: focused ? colors.action : "transparent" }]} />;
+    return (
+      <Image
+        key={photo}
+        source={{ uri: photo }}
+        onError={() => setFailed(true)}
+        style={[
+          styles.profileTabPhoto,
+          {
+            width: size + 2,
+            height: size + 2,
+            borderRadius: (size + 2) / 2,
+            borderColor: focused ? colors.action : "transparent",
+          },
+        ]}
+      />
+    );
   }
   return <UserRound color={color} size={size} />;
 }
@@ -36,24 +64,59 @@ export default function TabsLayout() {
       }
     }
     void hydrateProfilePhoto();
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, []);
 
   return (
-    <Tabs screenOptions={{
-      headerStyle: { backgroundColor: colors.brandPanel },
-      headerTintColor: colors.white,
-      tabBarActiveTintColor: colors.action,
-      tabBarInactiveTintColor: colors.textMuted,
-      tabBarStyle: { height: 62, paddingTop: 5 },
-    }}>
-      <Tabs.Screen name="index" options={{ title: "Início", tabBarIcon: ({ color, size }) => <House color={color} size={size} /> }} />
-      <Tabs.Screen name="adocoes" options={{ title: "Adoções", tabBarIcon: ({ color, size }) => <PawPrint color={color} size={size} /> }} />
+    <Tabs
+      screenOptions={{
+        headerStyle: { backgroundColor: colors.brandPanel },
+        headerTintColor: colors.white,
+        tabBarActiveTintColor: colors.action,
+        tabBarInactiveTintColor: colors.textMuted,
+        tabBarStyle: { height: 62, paddingTop: 5 },
+      }}
+    >
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: "Início",
+          tabBarIcon: ({ color, size }) => <House color={color} size={size} />,
+        }}
+      />
+      <Tabs.Screen
+        name="adocoes"
+        options={{
+          title: "Adoções",
+          tabBarIcon: ({ color, size }) => (
+            <PawPrint color={color} size={size} />
+          ),
+        }}
+      />
       <Tabs.Screen name="eventos" options={{ href: null }} />
       <Tabs.Screen name="eventos-mobile" options={{ href: null }} />
-      <Tabs.Screen name="eventos-integrados" options={{ title: "Eventos", tabBarIcon: ({ color, size }) => <CalendarDays color={color} size={size} /> }} />
+      <Tabs.Screen
+        name="eventos-integrados"
+        options={{
+          title: "Eventos",
+          tabBarIcon: ({ color, size }) => (
+            <CalendarDays color={color} size={size} />
+          ),
+        }}
+      />
       <Tabs.Screen name="perfil" options={{ href: null }} />
-      <Tabs.Screen name="perfil-profissional" options={{ title: "Perfil", headerShown: false, tabBarIcon: ({ color, size, focused }) => <ProfileTabIcon color={color} size={size} focused={focused} /> }} />
+      <Tabs.Screen
+        name="perfil-profissional"
+        options={{
+          title: "Perfil",
+          headerShown: false,
+          tabBarIcon: ({ color, size, focused }) => (
+            <ProfileTabIcon color={color} size={size} focused={focused} />
+          ),
+        }}
+      />
     </Tabs>
   );
 }

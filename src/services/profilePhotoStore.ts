@@ -29,7 +29,9 @@ export async function getStoredProfilePhoto(userId: string) {
   if (!userId) return null;
   const key = storageKey(userId);
   if (Platform.OS === "web") {
-    return typeof localStorage === "undefined" ? null : localStorage.getItem(key);
+    return typeof localStorage === "undefined"
+      ? null
+      : localStorage.getItem(key);
   }
   try {
     return await SecureStore.getItemAsync(key);

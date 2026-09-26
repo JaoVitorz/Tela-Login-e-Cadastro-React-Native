@@ -64,7 +64,9 @@ export const eventsApi = {
   async create(payload: CreateEventPayload): Promise<PetEvent> {
     const token = await tokenStorage.getToken();
     if (!token) {
-      throw new Error("Sua sessão não foi encontrada. Faça login novamente antes de publicar.");
+      throw new Error(
+        "Sua sessão não foi encontrada. Faça login novamente antes de publicar.",
+      );
     }
     const response = await eventsClient.post<{ data: PetEvent }>("", payload);
     return response.data.data;
@@ -80,7 +82,10 @@ export const eventsApi = {
     if (!token) {
       throw new Error("Sua sessão não foi encontrada. Faça login novamente.");
     }
-    const response = await eventsClient.put<{ data: PetEvent }>(`/${id}`, payload);
+    const response = await eventsClient.put<{ data: PetEvent }>(
+      `/${id}`,
+      payload,
+    );
     return response.data.data;
   },
 

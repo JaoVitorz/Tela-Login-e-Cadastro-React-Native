@@ -1,4 +1,10 @@
-import { View, TextInput, Text, StyleSheet, TextInputProps } from "react-native";
+import {
+  View,
+  TextInput,
+  Text,
+  StyleSheet,
+  TextInputProps,
+} from "react-native";
 import { useState } from "react";
 import { colors } from "@/theme/colors";
 import React from "react";

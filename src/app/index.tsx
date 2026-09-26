@@ -32,7 +32,10 @@ export default function Index() {
     setLoginError(null);
     setLoading(true);
     try {
-      const response = await authApi.login({ email: email.trim(), senha: password });
+      const response = await authApi.login({
+        email: email.trim(),
+        senha: password,
+      });
       await tokenStorage.setToken(response.token);
       router.replace("/(tabs)");
     } catch (error) {
@@ -55,7 +58,9 @@ export default function Index() {
         <View style={styles.container}>
           <View style={styles.brandSection}>
             <Text style={styles.brandTitle}>PetJoyful</Text>
-            <Text style={styles.brandSubtitle}>Conectando Corações e Patas</Text>
+            <Text style={styles.brandSubtitle}>
+              Conectando Corações e Patas
+            </Text>
             <Image
               source={require("@/assets/duke2.png")}
               style={styles.illustration}
@@ -109,12 +114,16 @@ export default function Index() {
               <Button
                 label="Continue com Google"
                 variant="google"
-                onPress={() => Alert.alert("Em breve", "Login social ainda não disponível")}
+                onPress={() =>
+                  Alert.alert("Em breve", "Login social ainda não disponível")
+                }
               />
               <Button
                 label="Continue com Outlook"
                 variant="apple"
-                onPress={() => Alert.alert("Em breve", "Login social ainda não disponível")}
+                onPress={() =>
+                  Alert.alert("Em breve", "Login social ainda não disponível")
+                }
               />
             </View>
 
@@ -126,7 +135,7 @@ export default function Index() {
             </Text>
           </View>
 
-            <View style={styles.pageFooter}>
+          <View style={styles.pageFooter}>
             <Text style={styles.pageFooterLink}>Sobre</Text>
             <Text style={styles.pageFooterLink}>Ajuda</Text>
             <Text style={styles.pageFooterLink}>Privacidade</Text>

@@ -24,7 +24,8 @@ const DEFAULT_PROD = "https://pet-joyful-backend.onrender.com";
 const DEV_LOCAL = ["http://localhost:5000", "http://localhost:3004"];
 
 const API_URL =
-  process.env.EXPO_PUBLIC_API_URL || (typeof __DEV__ !== 'undefined' && __DEV__ ? DEV_LOCAL : DEFAULT_PROD);
+  process.env.EXPO_PUBLIC_API_URL ||
+  (typeof __DEV__ !== "undefined" && __DEV__ ? DEV_LOCAL : DEFAULT_PROD);
 
 export const api = axios.create({
   baseURL: `${API_URL}/api/auth`,

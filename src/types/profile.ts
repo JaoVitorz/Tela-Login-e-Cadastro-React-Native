@@ -18,19 +18,21 @@ export interface ProfessionalProfile {
   updatedAt?: string;
 }
 
-export type ProfessionalProfileUpdate = Partial<Pick<
-  ProfessionalProfile,
-  | "nome"
-  | "telefone"
-  | "data_nascimento"
-  | "bio"
-  | "cidade"
-  | "estado"
-  | "cep"
-  | "endereco"
-  | "numero"
-  | "complemento"
->>;
+export type ProfessionalProfileUpdate = Partial<
+  Pick<
+    ProfessionalProfile,
+    | "nome"
+    | "telefone"
+    | "data_nascimento"
+    | "bio"
+    | "cidade"
+    | "estado"
+    | "cep"
+    | "endereco"
+    | "numero"
+    | "complemento"
+  >
+>;
 
 export interface ProfilePhotoUpload {
   uri: string;
