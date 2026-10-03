@@ -56,6 +56,16 @@ npm install
 npx expo start
 ```
 
+Para abrir a versão web com a origem permitida pelo serviço de postagens:
+
+```bash
+npm run web
+```
+
+O feed da Home usa `EXPO_PUBLIC_POSTS_API_URL`. Sem um arquivo `.env`, o app usa
+`https://pet-joyful-posts-service.onrender.com`. Para apontar para uma instância
+local, configure essa variável com a URL acessível pelo navegador ou dispositivo.
+
 Escaneie o QR Code com o aplicativo **Expo Go** (disponível para Android e iOS) ou execute em um emulador.
 
 ---

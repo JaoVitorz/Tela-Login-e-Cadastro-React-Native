@@ -37,6 +37,11 @@ import { authApi, extractApiErrorMessage } from "@/services/api";
 import { eventsApi } from "@/services/eventsApi";
 import { getProfileErrorMessage, profileApi } from "@/services/profileApi";
 import {
+  getStoredProfileCover,
+  persistProfileCover,
+  removeStoredProfileCover,
+} from "@/services/profileCoverStore";
+import {
   getStoredProfilePhoto,
   persistProfilePhoto,
   setProfilePhoto,
@@ -163,6 +168,10 @@ export default function ProfessionalProfileScreen() {
   const [imageFailed, setImageFailed] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [coverUri, setCoverUri] = useState<string | null>(null);
+  const [coverPreview, setCoverPreview] = useState<string | null>(null);
+  const [coverFailed, setCoverFailed] = useState(false);
+  const [savingCover, setSavingCover] = useState(false);
 
   const loadProfile = useCallback(async (refresh = false) => {
     refresh ? setRefreshing(true) : setLoading(true);
@@ -170,11 +179,12 @@ export default function ProfessionalProfileScreen() {
     try {
       const { user } = await authApi.getProfile();
       const userId = user.id || user._id || "";
-      const [professionalResult, eventsResult, storedPhotoResult] =
+      const [professionalResult, eventsResult, storedPhotoResult, coverResult] =
         await Promise.allSettled([
           profileApi.getMyProfile(),
           eventsApi.list({ limit: 100 }),
           getStoredProfilePhoto(userId),
+          getStoredProfileCover(userId),
         ]);
       const professional =
         professionalResult.status === "fulfilled"
@@ -188,6 +198,9 @@ export default function ProfessionalProfileScreen() {
         professional?.foto_perfil || storedPhoto || undefined;
       setImageFailed(false);
       setAvatarPreview(null);
+      setCoverFailed(false);
+      setCoverPreview(null);
+      setCoverUri(coverResult.status === "fulfilled" ? coverResult.value : null);
       setProfilePhoto(resolvedPhoto || null);
       if (professional?.foto_perfil)
         void persistProfilePhoto(userId, professional.foto_perfil);
@@ -394,6 +407,87 @@ export default function ProfessionalProfileScreen() {
     }
   }
 
+  function showCoverError(message: string) {
+    if (Platform.OS === "web") window.alert(message);
+    else Alert.alert("Não foi possível alterar a capa", message);
+  }
+
+  async function selectCoverPhoto() {
+    if (savingCover || !profile?.userId) return;
+    try {
+      if (Platform.OS !== "web") {
+        const permission =
+          await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!permission.granted) {
+          showCoverError("Autorize o acesso às fotos para escolher uma capa.");
+          return;
+        }
+      }
+      const selection = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
+        allowsEditing: true,
+        aspect: [16, 7],
+        quality: 0.7,
+      });
+      if (selection.canceled) return;
+      const asset = selection.assets[0];
+      const type = asset.mimeType || "image/jpeg";
+      const allowedTypes =
+        Platform.OS === "web"
+          ? ["image/jpeg", "image/png", "image/webp"]
+          : ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"];
+      if (!allowedTypes.includes(type)) {
+        showCoverError("Escolha uma imagem JPG, PNG ou WebP.");
+        return;
+      }
+      const maxSize = Platform.OS === "web" ? 2 : 5;
+      if (asset.fileSize && asset.fileSize > maxSize * 1024 * 1024) {
+        showCoverError(`Escolha uma imagem com no máximo ${maxSize} MB.`);
+        return;
+      }
+
+      setCoverFailed(false);
+      setCoverPreview(asset.uri);
+      setSavingCover(true);
+      const savedUri = await persistProfileCover(profile.userId, {
+        uri: asset.uri,
+        type,
+        file: asset.file || undefined,
+      });
+      setCoverFailed(false);
+      setCoverUri(savedUri);
+      setCoverPreview(null);
+    } catch (coverError) {
+      setCoverPreview(null);
+      showCoverError(
+        coverError instanceof Error
+          ? coverError.message
+          : "Não foi possível salvar a imagem escolhida.",
+      );
+    } finally {
+      setSavingCover(false);
+    }
+  }
+
+  async function removeCoverPhoto() {
+    if (savingCover || !profile?.userId) return;
+    setSavingCover(true);
+    try {
+      await removeStoredProfileCover(profile.userId);
+      setCoverUri(null);
+      setCoverPreview(null);
+      setCoverFailed(false);
+    } catch (coverError) {
+      showCoverError(
+        coverError instanceof Error
+          ? coverError.message
+          : "Não foi possível remover a capa.",
+      );
+    } finally {
+      setSavingCover(false);
+    }
+  }
+
   if (loading)
     return (
       <View style={styles.center}>
@@ -419,6 +513,8 @@ export default function ProfessionalProfileScreen() {
   const type = roleLabel(profile.tipo_usuario || profile.authType);
   const recentEvents = createdEvents.slice(0, 3);
   const avatarUri = avatarPreview || profile.foto_perfil;
+  const coverImageUri = coverPreview || coverUri;
+  const hasCoverImage = !!coverImageUri && !coverFailed;
 
   return (
     <View style={styles.page}>
@@ -444,12 +540,56 @@ export default function ProfessionalProfileScreen() {
           </Pressable>
         </View>
         <View style={styles.cover}>
-          <View style={styles.coverCircleLarge} />
-          <View style={styles.coverCircleSmall} />
-          <Text style={styles.coverBrand}>PET JOYFUL</Text>
-          <Text style={styles.coverSubtitle}>
-            Conectando pessoas que cuidam
-          </Text>
+          {hasCoverImage ? (
+            <>
+              <Image
+                key={coverImageUri}
+                source={{ uri: coverImageUri! }}
+                style={styles.coverImage}
+                resizeMode="cover"
+                onError={() => setCoverFailed(true)}
+              />
+              <View style={styles.coverShade} />
+            </>
+          ) : (
+            <>
+              <View style={styles.coverCircleLarge} />
+              <View style={styles.coverCircleSmall} />
+              <Text style={styles.coverBrand}>PET JOYFUL</Text>
+              <Text style={styles.coverSubtitle}>
+                Conectando pessoas que cuidam
+              </Text>
+            </>
+          )}
+          {hasCoverImage && (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Remover foto de capa"
+              disabled={savingCover}
+              onPress={() => void removeCoverPhoto()}
+              style={styles.removeCoverButton}
+            >
+              <X size={16} color={colors.white} />
+            </Pressable>
+          )}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={
+              hasCoverImage ? "Alterar foto de capa" : "Adicionar foto de capa"
+            }
+            disabled={savingCover}
+            onPress={() => void selectCoverPhoto()}
+            style={styles.coverEditButton}
+          >
+            {savingCover ? (
+              <ActivityIndicator size="small" color={colors.white} />
+            ) : (
+              <Camera size={16} color={colors.white} />
+            )}
+            <Text style={styles.coverEditText}>
+              {hasCoverImage ? "Alterar capa" : "Adicionar capa"}
+            </Text>
+          </Pressable>
         </View>
         <View style={styles.identity}>
           <View style={styles.avatarFrame}>
@@ -934,6 +1074,43 @@ const styles = StyleSheet.create({
     height: 172,
     backgroundColor: colors.brandPanel,
     overflow: "hidden",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  coverImage: {
+    position: "absolute",
+    width: "100%",
+    height: "100%",
+  },
+  coverShade: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,.12)",
+  },
+  coverEditButton: {
+    position: "absolute",
+    right: 12,
+    bottom: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    borderRadius: 16,
+    backgroundColor: "rgba(0,0,0,.62)",
+    paddingHorizontal: 10,
+    minHeight: 32,
+  },
+  coverEditText: {
+    color: colors.white,
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  removeCoverButton: {
+    position: "absolute",
+    right: 12,
+    top: 12,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "rgba(0,0,0,.62)",
     alignItems: "center",
     justifyContent: "center",
   },
