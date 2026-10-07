@@ -8,13 +8,13 @@ import { colors } from "@/theme/colors";
 export function SessionGuard({ children }: { children: React.ReactNode }) {
   const navigation = useNavigation("/");
   const pathname = usePathname();
-  const [session, setSession] = useState<{ path: string; active: boolean } | null>(null);
+  const [sessionActive, setSessionActive] = useState<boolean | null>(null);
 
   useFocusEffect(useCallback(() => {
     let mounted = true;
     const checkSession = async () => {
       const token = await tokenStorage.getToken();
-      if (mounted) setSession({ path: pathname, active: !!token });
+      if (mounted) setSessionActive(!!token);
     };
     void checkSession();
     const subscription = AppState.addEventListener("change", (state) => {
@@ -28,10 +28,10 @@ export function SessionGuard({ children }: { children: React.ReactNode }) {
     };
   }, [pathname]));
 
-  if (!session || session.path !== pathname) {
+  if (sessionActive === null) {
     return <View style={styles.page}><ActivityIndicator color={colors.action} /></View>;
   }
-  if (!session.active) {
+  if (!sessionActive) {
     return (
       <View style={styles.page}>
         <LogIn size={48} color={colors.brandPanel} />
