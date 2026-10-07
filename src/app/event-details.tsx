@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import { SessionGuard } from "@/components/SessionGuard";
 import React from "react";
 import {
   ActivityIndicator,
@@ -50,6 +51,10 @@ const statusLabels: Record<EventStatus, string> = {
 };
 
 export default function EventDetailsScreen() {
+  return <SessionGuard><AuthenticatedEventDetailsScreen /></SessionGuard>;
+}
+
+function AuthenticatedEventDetailsScreen() {
   const { id } = useLocalSearchParams<{ id?: string | string[] }>();
   const eventId = Array.isArray(id) ? id[0] : id;
   const [event, setEvent] = useState<PetEvent | null>(null);

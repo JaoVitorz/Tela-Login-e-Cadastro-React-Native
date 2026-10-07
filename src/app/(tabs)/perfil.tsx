@@ -8,13 +8,14 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { router } from "expo-router";
+import { useNavigation } from "expo-router";
 import { LogOut, UserRound } from "lucide-react-native";
 import { authApi } from "@/services/api";
 import { tokenStorage } from "@/services/tokenStorage";
 import { colors } from "@/theme/colors";
 
 export default function ProfileScreen() {
+  const rootNavigation = useNavigation("/");
   const [name, setName] = useState("Sua conta");
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(true);
@@ -30,7 +31,7 @@ export default function ProfileScreen() {
   }, []);
   async function logout() {
     await tokenStorage.removeToken();
-    router.replace("/");
+    rootNavigation.reset({ index: 0, routes: [{ name: "index" as never }] });
   }
   return (
     <View style={styles.page}>

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { SessionGuard } from "@/components/SessionGuard";
 import React from "react";
 import {
   Alert,
@@ -79,6 +80,10 @@ function WebDateTimeInput({
 }
 
 export default function NewEventScreen() {
+  return <SessionGuard><AuthenticatedNewEventScreen /></SessionGuard>;
+}
+
+function AuthenticatedNewEventScreen() {
   const { id } = useLocalSearchParams<{ id?: string | string[] }>();
   const eventId = Array.isArray(id) ? id[0] : id;
   const isEditing = !!eventId;

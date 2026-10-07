@@ -15,7 +15,7 @@ import {
   Text,
   View,
 } from "react-native";
-import { Href, router, useFocusEffect } from "expo-router";
+import { Href, router, useFocusEffect, useNavigation } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import {
   BriefcaseBusiness,
@@ -24,11 +24,13 @@ import {
   CheckCircle2,
   LogOut,
   Mail,
+  Menu,
   MapPin,
   Pencil,
   Phone,
   RefreshCcw,
   Share2,
+  Trash2,
   UserRound,
   X,
 } from "lucide-react-native";
@@ -156,6 +158,7 @@ function EventPreview({ event }: { event: PetEvent }) {
 }
 
 export default function ProfessionalProfileScreen() {
+  const rootNavigation = useNavigation("/");
   const [profile, setProfile] = useState<ProfileView | null>(null);
   const [createdEvents, setCreatedEvents] = useState<PetEvent[]>([]);
   const [activeTab, setActiveTab] = useState<ProfileTab>("posts");
@@ -172,6 +175,10 @@ export default function ProfessionalProfileScreen() {
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const [coverFailed, setCoverFailed] = useState(false);
   const [savingCover, setSavingCover] = useState(false);
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const [confirmingDeletion, setConfirmingDeletion] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
+  const [deletionError, setDeletionError] = useState("");
 
   const loadProfile = useCallback(async (refresh = false) => {
     refresh ? setRefreshing(true) : setLoading(true);
@@ -328,7 +335,23 @@ export default function ProfessionalProfileScreen() {
 
   async function logout() {
     await tokenStorage.removeToken();
-    router.replace("/");
+    setProfilePhoto(null);
+    rootNavigation.reset({ index: 0, routes: [{ name: "index" as never }] });
+  }
+  async function deleteAccount() {
+    if (deletingAccount) return;
+    setDeletingAccount(true);
+    setDeletionError("");
+    try {
+      await authApi.deleteProfile();
+      await tokenStorage.removeToken();
+      setProfilePhoto(null);
+      rootNavigation.reset({ index: 0, routes: [{ name: "index" as never }] });
+    } catch (deleteError) {
+      setDeletionError(extractApiErrorMessage(deleteError));
+    } finally {
+      setDeletingAccount(false);
+    }
   }
   function confirmLogout() {
     if (Platform.OS === "web") {
@@ -532,11 +555,12 @@ export default function ProfessionalProfileScreen() {
         <View style={styles.topBar}>
           <Text style={styles.brand}>PetJoyful</Text>
           <Pressable
-            accessibilityLabel="Sair da conta"
+            accessibilityRole="button"
+            accessibilityLabel="Abrir menu da conta"
             style={styles.iconButton}
-            onPress={confirmLogout}
+            onPress={() => setAccountMenuOpen(true)}
           >
-            <LogOut size={20} color={colors.textDark} />
+            <Menu size={22} color={colors.textDark} />
           </Pressable>
         </View>
         <View style={styles.cover}>
@@ -879,6 +903,67 @@ export default function ProfessionalProfileScreen() {
       </ScrollView>
 
       <Modal
+        visible={accountMenuOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setAccountMenuOpen(false)}
+      >
+        <Pressable style={styles.accountMenuBackdrop} onPress={() => setAccountMenuOpen(false)}>
+          <Pressable style={styles.accountMenu} onPress={(event) => event.stopPropagation()}>
+            <Pressable
+              accessibilityRole="button"
+              style={styles.accountMenuItem}
+              onPress={() => {
+                setAccountMenuOpen(false);
+                confirmLogout();
+              }}
+            >
+              <LogOut size={20} color={colors.textDark} />
+              <Text style={styles.accountMenuText}>Sair da conta</Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              style={styles.accountMenuItem}
+              onPress={() => {
+                setAccountMenuOpen(false);
+                setDeletionError("");
+                setConfirmingDeletion(true);
+              }}
+            >
+              <Trash2 size={20} color={colors.error} />
+              <Text style={styles.deleteAccountText}>Excluir conta permanentemente</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      <Modal
+        visible={confirmingDeletion}
+        transparent
+        animationType="fade"
+        onRequestClose={() => { if (!deletingAccount) setConfirmingDeletion(false); }}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Excluir conta permanentemente?</Text>
+            <Text style={styles.deletionDescription}>
+              Sua conta será excluída permanentemente. Esta ação não pode ser desfeita.
+            </Text>
+            {!!deletionError && <Text accessibilityRole="alert" style={styles.deleteAccountText}>{deletionError}</Text>}
+            <View style={styles.modalActions}>
+              <Pressable accessibilityRole="button" disabled={deletingAccount} style={styles.accountMenuItem} onPress={() => setConfirmingDeletion(false)}>
+                <Text style={styles.accountMenuText}>Cancelar</Text>
+              </Pressable>
+              <Pressable accessibilityRole="button" disabled={deletingAccount} style={styles.accountMenuItem} onPress={() => void deleteAccount()}>
+                {deletingAccount && <ActivityIndicator size="small" color={colors.error} />}
+                <Text style={styles.deleteAccountText}>{deletingAccount ? "Excluindo…" : "Excluir permanentemente"}</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
         visible={editing}
         transparent
         animationType="slide"
@@ -1049,6 +1134,12 @@ export default function ProfessionalProfileScreen() {
 }
 
 const styles = StyleSheet.create({
+  accountMenuBackdrop: { flex: 1, backgroundColor: "rgba(0,0,0,.25)", alignItems: "flex-end", padding: 16, paddingTop: 58 },
+  accountMenu: { backgroundColor: colors.white, borderRadius: 14, padding: 8, maxWidth: "100%", elevation: 6 },
+  accountMenuItem: { flexDirection: "row", alignItems: "center", gap: 10, padding: 12, minHeight: 44, flexShrink: 1 },
+  accountMenuText: { color: colors.textDark, fontWeight: "600" },
+  deleteAccountText: { color: colors.error, fontWeight: "700", flexShrink: 1 },
+  deletionDescription: { color: colors.textMuted, lineHeight: 22, marginVertical: 16 },
   page: { flex: 1, backgroundColor: "#eef1f4" },
   content: { paddingBottom: 32 },
   topBar: {

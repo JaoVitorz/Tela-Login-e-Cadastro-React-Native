@@ -1,4 +1,5 @@
 import { Tabs } from "expo-router";
+import { SessionGuard } from "@/components/SessionGuard";
 import React, { useEffect, useState } from "react";
 import { Image, StyleSheet } from "react-native";
 import { CalendarDays, House, PawPrint, UserRound } from "lucide-react-native";
@@ -46,6 +47,10 @@ function ProfileTabIcon({
 }
 
 export default function TabsLayout() {
+  return <SessionGuard><AuthenticatedTabsLayout /></SessionGuard>;
+}
+
+function AuthenticatedTabsLayout() {
   useEffect(() => {
     let active = true;
     async function hydrateProfilePhoto() {
