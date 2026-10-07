@@ -91,6 +91,7 @@ export const authApi = {
       email: data.email.trim().toLowerCase(),
       senha: data.senha,
       tipo: toBackendTipo(data.tipo),
+      ...(data.cpf ? { cpf: data.cpf.replace(/\D/g, '') } : {}),
     };
     const response = await api.post<AuthResponse>('/register', payload);
     return response.data;

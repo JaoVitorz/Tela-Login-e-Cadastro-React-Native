@@ -3,6 +3,33 @@ import * as Yup from "yup";
 // Espelha 1:1 src/schema/registroschema.ts do frontend Next.js
 export type TipoRegistro = "adotante" | "ong" | "veterinario";
 
+function isCpfValid(value: string): boolean {
+  const cpf = value.replace(/\D/g, "");
+
+  if (cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) {
+    return false;
+  }
+
+  for (let length = 9; length <= 10; length += 1) {
+    const sum = cpf
+      .slice(0, length)
+      .split("")
+      .reduce(
+        (total, digit, index) =>
+          total + Number(digit) * (length + 1 - index),
+        0,
+      );
+    const remainder = (sum * 10) % 11;
+    const expectedDigit = remainder === 10 ? 0 : remainder;
+
+    if (Number(cpf[length]) !== expectedDigit) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 export const getRegistroSchema = (tipo: TipoRegistro) => {
   return Yup.object().shape({
     nome: Yup.string()
@@ -31,7 +58,7 @@ export const getRegistroSchema = (tipo: TipoRegistro) => {
           const cleanedValue = value.replace(/\D/g, "");
           return tipo === "ong"
             ? cleanedValue.length === 14
-            : cleanedValue.length === 11;
+            : isCpfValid(cleanedValue);
         },
       ),
 
