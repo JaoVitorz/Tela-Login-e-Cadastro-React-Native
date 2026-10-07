@@ -7,9 +7,10 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  ActivityIndicator,
 } from "react-native";
-import { useState } from "react";
-import { Link, router } from "expo-router";
+import { useCallback, useState } from "react";
+import { Link, Redirect, router, useFocusEffect } from "expo-router";
 import { Input } from "@/components/input";
 import { Button } from "@/components/Buttom";
 import { colors } from "@/theme/colors";
@@ -22,6 +23,17 @@ export default function Index() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
+  const [hasSession, setHasSession] = useState<boolean | null>(null);
+
+  useFocusEffect(useCallback(() => {
+    let active = true;
+    void tokenStorage.getToken().then((token) => {
+      if (active) setHasSession(!!token);
+    });
+    return () => {
+      active = false;
+    };
+  }, []));
 
   async function handleSignIn() {
     if (!email.trim() || !password.trim()) {
@@ -44,6 +56,16 @@ export default function Index() {
       setLoading(false);
     }
   }
+
+  if (hasSession === null) {
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.background, alignItems: "center", justifyContent: "center" }}>
+        <ActivityIndicator color={colors.action} />
+      </View>
+    );
+  }
+
+  if (hasSession) return <Redirect href="/(tabs)" />;
 
   return (
     <KeyboardAvoidingView
