@@ -66,6 +66,37 @@ O feed da Home usa `EXPO_PUBLIC_POSTS_API_URL`. Sem um arquivo `.env`, o app usa
 `https://pet-joyful-posts-service.onrender.com`. Para apontar para uma instância
 local, configure essa variável com a URL acessível pelo navegador ou dispositivo.
 
+### Conta, segurança e privacidade
+
+O login aceita a resposta normal `{ token, user }` e o desafio MFA
+`{ mfaRequired: true, challengeToken }`. No segundo caso, a sessão só é criada
+depois da confirmação em `/api/auth/mfa/verify`, com código do autenticador ou
+código de recuperação. Tokens ausentes ou malformados não são armazenados.
+
+No perfil, o menu da conta oferece **Segurança e MFA**, **FAQ**, **Políticas e
+normas** e **Privacidade e LGPD**. A configuração MFA usa chave manual TOTP ou
+abertura do autenticador instalado; a confirmação, a desativação e a renovação
+dos códigos substituem o token local pelo novo token retornado pelo backend.
+Os códigos de recuperação ficam apenas na memória da tela e devem ser guardados
+pelo usuário antes de sair dela.
+
+O backend principal exige CPF para todas as contas. Para ONG, o formulário pede
+o CPF do responsável. As categorias ONG e veterinário continuam mapeadas para
+`cliente`, conforme o enum do backend; CNPJ e CRMV não são enviados como se
+fossem persistidos ou verificados.
+
+A página LGPD descreve as funções disponíveis e aponta a lei oficial. O
+responsável pelo projeto precisa complementar identificação do controlador,
+canal de privacidade, bases legais, retenção e compartilhamento antes de
+publicá-la como política definitiva.
+
+Validação local, sem usar contas de produção:
+
+```bash
+npm run test:auth
+npx tsc --noEmit
+```
+
 Escaneie o QR Code com o aplicativo **Expo Go** (disponível para Android e iOS) ou execute em um emulador.
 
 ---
