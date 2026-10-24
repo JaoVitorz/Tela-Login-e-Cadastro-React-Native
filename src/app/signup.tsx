@@ -7,55 +7,50 @@ import {
   Platform,
   Alert,
   TouchableOpacity,
-} from "react-native";
-import { useState } from "react";
-import { Link, router } from "expo-router";
-import {
-  PawPrint,
-  Building2,
-  Stethoscope,
-  type LucideIcon,
-} from "lucide-react-native";
-import { ValidationError } from "yup";
-import { Input } from "@/components/input";
-import { Button } from "@/components/Buttom";
-import { colors } from "@/theme/colors";
-import { getRegistroSchema, type TipoRegistro } from "@/schema/registroschema";
-import { authApi, extractApiErrorMessage } from "@/services/api";
-import { tokenStorage } from "@/services/tokenStorage";
-import React from "react";
+} from 'react-native';
+import { useState } from 'react';
+import { Link, router } from 'expo-router';
+import { PawPrint, Building2, Stethoscope, type LucideIcon } from 'lucide-react-native';
+import { ValidationError } from 'yup';
+import { Input } from '@/components/input';
+import { Button } from '@/components/Buttom';
+import { colors } from '@/theme/colors';
+import { getRegistroSchema, type TipoRegistro } from '@/schema/registroschema';
+import { authApi, extractApiErrorMessage } from '@/services/api';
+import { tokenStorage } from '@/services/tokenStorage';
+import React from 'react';
 
 const profileOptions: Array<{
   value: TipoRegistro;
   label: string;
   icon: LucideIcon;
 }> = [
-  { value: "adotante", label: "Adotante", icon: PawPrint },
-  { value: "ong", label: "ONG", icon: Building2 },
-  { value: "veterinario", label: "Veterinario", icon: Stethoscope },
+  { value: 'adotante', label: 'Adotante', icon: PawPrint },
+  { value: 'ong', label: 'ONG', icon: Building2 },
+  { value: 'veterinario', label: 'Veterinario', icon: Stethoscope },
 ];
 
 const fieldCopy = {
   adotante: {
-    nome: "Nome",
-    sobrenome: "Sobrenome",
-    documento: "CPF",
-    documentoPlaceholder: "000.000.000-00",
-    emailPlaceholder: "seu@email.com",
+    nome: 'Nome',
+    sobrenome: 'Sobrenome',
+    documento: 'CPF',
+    documentoPlaceholder: '000.000.000-00',
+    emailPlaceholder: 'seu@email.com',
   },
   ong: {
-    nome: "Nome da ONG",
-    sobrenome: "Responsavel",
-    documento: "CNPJ",
-    documentoPlaceholder: "00.000.000/0000-00",
-    emailPlaceholder: "contato@ong.org",
+    nome: 'Nome da ONG',
+    sobrenome: 'Responsavel',
+    documento: 'CPF do responsável',
+    documentoPlaceholder: '000.000.000-00',
+    emailPlaceholder: 'contato@ong.org',
   },
   veterinario: {
-    nome: "Nome",
-    sobrenome: "Sobrenome",
-    documento: "CPF",
-    documentoPlaceholder: "000.000.000-00",
-    emailPlaceholder: "profissional@email.com",
+    nome: 'Nome',
+    sobrenome: 'Sobrenome',
+    documento: 'CPF',
+    documentoPlaceholder: '000.000.000-00',
+    emailPlaceholder: 'profissional@email.com',
   },
 } as const;
 
@@ -63,37 +58,30 @@ type FormValues = {
   nome: string;
   sobrenome: string;
   documento: string;
-  crmv: string;
   email: string;
   senha: string;
   confirmarSenha: string;
 };
 
 const initialValues: FormValues = {
-  nome: "",
-  sobrenome: "",
-  documento: "",
-  crmv: "",
-  email: "",
-  senha: "",
-  confirmarSenha: "",
+  nome: '',
+  sobrenome: '',
+  documento: '',
+  email: '',
+  senha: '',
+  confirmarSenha: '',
 };
 
 export default function Signup() {
-  const [tipoUsuario, setTipoUsuario] = useState<TipoRegistro>("adotante");
+  const [tipoUsuario, setTipoUsuario] = useState<TipoRegistro>('adotante');
   const [values, setValues] = useState<FormValues>(initialValues);
-  const [errors, setErrors] = useState<
-    Partial<Record<keyof FormValues, string>>
-  >({});
+  const [errors, setErrors] = useState<Partial<Record<keyof FormValues, string>>>({});
   const [serverError, setServerError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   const copy = fieldCopy[tipoUsuario];
 
-  function setField<K extends keyof FormValues>(
-    field: K,
-    value: FormValues[K],
-  ) {
+  function setField<K extends keyof FormValues>(field: K, value: FormValues[K]) {
     setValues((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: undefined }));
@@ -107,6 +95,7 @@ export default function Signup() {
   }
 
   async function handleSignUp() {
+    if (submitting) return;
     setServerError(null);
 
     try {
@@ -130,7 +119,7 @@ export default function Signup() {
     setSubmitting(true);
     try {
       const nome =
-        tipoUsuario === "ong"
+        tipoUsuario === 'ong'
           ? `${values.nome} - ${values.sobrenome}`.trim()
           : `${values.nome} ${values.sobrenome}`.trim();
       const response = await authApi.register({
@@ -138,14 +127,11 @@ export default function Signup() {
         email: values.email,
         senha: values.senha,
         tipo: tipoUsuario,
-        ...(tipoUsuario === "ong"
-          ? { cnpj: values.documento.replace(/\D/g, "") }
-          : { cpf: values.documento.replace(/\D/g, "") }),
-        ...(tipoUsuario === "veterinario" ? { crmv: values.crmv } : {}),
+        cpf: values.documento.replace(/\D/g, ''),
       });
       await tokenStorage.setToken(response.token);
-      Alert.alert("Conta criada", "Bem-vindo(a) à comunidade PetJoyful!");
-      router.replace("/(tabs)");
+      Alert.alert('Conta criada', 'Bem-vindo(a) à comunidade PetJoyful!');
+      router.replace('/(tabs)');
     } catch (error) {
       setServerError(extractApiErrorMessage(error));
     } finally {
@@ -156,7 +142,7 @@ export default function Signup() {
   return (
     <KeyboardAvoidingView
       style={{ flex: 1, backgroundColor: colors.white }}
-      behavior={Platform.select({ ios: "padding", android: "height" })}
+      behavior={Platform.select({ ios: 'padding', android: 'height' })}
     >
       <ScrollView
         contentContainerStyle={{ flexGrow: 1 }}
@@ -171,20 +157,17 @@ export default function Signup() {
           </View>
 
           <View style={styles.brandCopy}>
-            <Text style={styles.brandHeading}>
-              A comunidade que conecta pets a lares amorosos
-            </Text>
+            <Text style={styles.brandHeading}>A comunidade que conecta pets a lares amorosos</Text>
             <Text style={styles.brandParagraph}>
-              Adote, ajude e compartilhe histórias reais de animais que
-              encontraram sua família.
+              Adote, ajude e compartilhe histórias reais de animais que encontraram sua família.
             </Text>
 
             <View style={styles.brandList}>
               {[
-                "Perfil completo para tutores e ONGs",
-                "Feed de pets disponíveis para adoção",
-                "Histórias de adoção inspiradoras",
-                "Conexão com veterinários confiáveis",
+                'Perfil completo para tutores e ONGs',
+                'Feed de pets disponíveis para adoção',
+                'Histórias de adoção inspiradoras',
+                'Conexão com veterinários confiáveis',
               ].map((item) => (
                 <View key={item} style={styles.brandListItem}>
                   <View style={styles.brandListBullet} />
@@ -194,18 +177,14 @@ export default function Signup() {
             </View>
           </View>
 
-          <Text style={styles.brandStat}>
-            +2.400 famílias já encontraram seu pet aqui
-          </Text>
+          <Text style={styles.brandStat}>+2.400 famílias já encontraram seu pet aqui</Text>
         </View>
 
         {/* .registro-form-panel */}
         <View style={styles.formPanel}>
           <View style={styles.formHeading}>
             <Text style={styles.formHeadingTitle}>Criar sua conta</Text>
-            <Text style={styles.formHeadingSubtitle}>
-              Escolha seu perfil e comece agora
-            </Text>
+            <Text style={styles.formHeadingSubtitle}>Escolha seu perfil e comece agora</Text>
           </View>
 
           {/* .profile-tabs */}
@@ -224,12 +203,7 @@ export default function Signup() {
                     strokeWidth={2.2}
                     color={active ? colors.tabActiveText : colors.textMuted}
                   />
-                  <Text
-                    style={[
-                      styles.tabLabel,
-                      active && { color: colors.tabActiveText },
-                    ]}
-                  >
+                  <Text style={[styles.tabLabel, active && { color: colors.tabActiveText }]}>
                     {label}
                   </Text>
                 </TouchableOpacity>
@@ -244,7 +218,7 @@ export default function Signup() {
                   label={copy.nome}
                   placeholder={copy.nome}
                   value={values.nome}
-                  onChangeText={(t) => setField("nome", t)}
+                  onChangeText={(t) => setField('nome', t)}
                   error={errors.nome}
                 />
               </View>
@@ -253,7 +227,7 @@ export default function Signup() {
                   label={copy.sobrenome}
                   placeholder={copy.sobrenome}
                   value={values.sobrenome}
-                  onChangeText={(t) => setField("sobrenome", t)}
+                  onChangeText={(t) => setField('sobrenome', t)}
                   error={errors.sobrenome}
                 />
               </View>
@@ -263,19 +237,15 @@ export default function Signup() {
               label={copy.documento}
               placeholder={copy.documentoPlaceholder}
               value={values.documento}
-              onChangeText={(t) => setField("documento", t)}
+              onChangeText={(t) => setField('documento', t)}
               error={errors.documento}
             />
 
-            {tipoUsuario === "veterinario" && (
-              <Input
-                label="CRMV"
-                placeholder="SP12345"
-                autoCapitalize="characters"
-                value={values.crmv}
-                onChangeText={(t) => setField("crmv", t)}
-                error={errors.crmv}
-              />
+            {tipoUsuario !== 'adotante' && (
+              <Text style={{ color: colors.loginMuted, lineHeight: 20 }}>
+                Nesta versão, ONG e veterinário são cadastrados como membros da comunidade. A conta
+                não verifica habilitação profissional.
+              </Text>
             )}
 
             <Input
@@ -284,7 +254,7 @@ export default function Signup() {
               keyboardType="email-address"
               autoCapitalize="none"
               value={values.email}
-              onChangeText={(t) => setField("email", t)}
+              onChangeText={(t) => setField('email', t)}
               error={errors.email}
             />
 
@@ -295,7 +265,7 @@ export default function Signup() {
                   placeholder="********"
                   secureTextEntry
                   value={values.senha}
-                  onChangeText={(t) => setField("senha", t)}
+                  onChangeText={(t) => setField('senha', t)}
                   error={errors.senha}
                 />
               </View>
@@ -305,7 +275,7 @@ export default function Signup() {
                   placeholder="********"
                   secureTextEntry
                   value={values.confirmarSenha}
-                  onChangeText={(t) => setField("confirmarSenha", t)}
+                  onChangeText={(t) => setField('confirmarSenha', t)}
                   error={errors.confirmarSenha}
                 />
               </View>
@@ -318,16 +288,14 @@ export default function Signup() {
             )}
 
             <Button
-              label={
-                submitting ? "Criando conta..." : "Criar conta no PetJoyful"
-              }
+              label={submitting ? 'Criando conta...' : 'Criar conta no PetJoyful'}
               variant="action"
               loading={submitting}
               onPress={handleSignUp}
             />
 
             <Text style={styles.loginLink}>
-              Já tem uma conta?{" "}
+              Já tem uma conta?{' '}
               <Link href="/" style={styles.loginLinkAnchor}>
                 Fazer login
               </Link>
@@ -347,8 +315,8 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   brandMark: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 12,
   },
   brandDot: {
@@ -360,7 +328,7 @@ const styles = StyleSheet.create({
   brandMarkText: {
     color: colors.white,
     fontSize: 20,
-    fontWeight: "800",
+    fontWeight: '800',
   },
   brandCopy: {
     marginTop: 32,
@@ -369,7 +337,7 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontSize: 26,
     lineHeight: 32,
-    fontWeight: "800",
+    fontWeight: '800',
   },
   brandParagraph: {
     color: colors.whiteMuted,
@@ -382,8 +350,8 @@ const styles = StyleSheet.create({
     marginTop: 24,
   },
   brandListItem: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 12,
   },
   brandListBullet: {
@@ -413,7 +381,7 @@ const styles = StyleSheet.create({
   formHeadingTitle: {
     color: colors.textDark,
     fontSize: 26,
-    fontWeight: "800",
+    fontWeight: '800',
   },
   formHeadingSubtitle: {
     color: colors.textMuted,
@@ -421,7 +389,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   tabs: {
-    flexDirection: "row",
+    flexDirection: 'row',
     gap: 6,
     padding: 6,
     borderRadius: 10,
@@ -432,14 +400,14 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 36,
     borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
-    flexDirection: "row",
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
     gap: 6,
   },
   tabButtonActive: {
     backgroundColor: colors.white,
-    shadowColor: "#111827",
+    shadowColor: '#111827',
     shadowOpacity: 0.12,
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 1 },
@@ -448,13 +416,13 @@ const styles = StyleSheet.create({
   tabLabel: {
     color: colors.textMuted,
     fontSize: 12,
-    fontWeight: "700",
+    fontWeight: '700',
   },
   form: {
     gap: 16,
   },
   row: {
-    flexDirection: "row",
+    flexDirection: 'row',
     gap: 12,
   },
   rowItem: {
@@ -472,14 +440,14 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   loginLink: {
-    textAlign: "center",
+    textAlign: 'center',
     color: colors.textMuted,
     fontSize: 13,
     marginTop: 4,
   },
   loginLinkAnchor: {
     color: colors.textLabel,
-    fontWeight: "700",
-    textDecorationLine: "underline",
+    fontWeight: '700',
+    textDecorationLine: 'underline',
   },
 });

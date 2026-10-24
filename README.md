@@ -83,7 +83,42 @@ npm run web
 
 A versão web usa a porta `3000`. Para desenvolver, também é possível executar o projeto em um dispositivo físico pelo Expo Go ou emulador.
 
+<<<<<<< HEAD
 ## Configuração dos serviços
+=======
+### Conta, segurança e privacidade
+
+O login aceita a resposta normal `{ token, user }` e o desafio MFA
+`{ mfaRequired: true, challengeToken }`. No segundo caso, a sessão só é criada
+depois da confirmação em `/api/auth/mfa/verify`, com código do autenticador ou
+código de recuperação. Tokens ausentes ou malformados não são armazenados.
+
+No perfil, o menu da conta oferece **Segurança e MFA**, **FAQ**, **Políticas e
+normas** e **Privacidade e LGPD**. A configuração MFA usa chave manual TOTP ou
+abertura do autenticador instalado; a confirmação, a desativação e a renovação
+dos códigos substituem o token local pelo novo token retornado pelo backend.
+Os códigos de recuperação ficam apenas na memória da tela e devem ser guardados
+pelo usuário antes de sair dela.
+
+O backend principal exige CPF para todas as contas. Para ONG, o formulário pede
+o CPF do responsável. As categorias ONG e veterinário continuam mapeadas para
+`cliente`, conforme o enum do backend; CNPJ e CRMV não são enviados como se
+fossem persistidos ou verificados.
+
+A página LGPD descreve as funções disponíveis e aponta a lei oficial. O
+responsável pelo projeto precisa complementar identificação do controlador,
+canal de privacidade, bases legais, retenção e compartilhamento antes de
+publicá-la como política definitiva.
+
+Validação local, sem usar contas de produção:
+
+```bash
+npm run test:auth
+npx tsc --noEmit
+```
+
+Escaneie o QR Code com o aplicativo **Expo Go** (disponível para Android e iOS) ou execute em um emulador.
+>>>>>>> adab43e32e083a0c4eed2cd9f1f9e8a87ba7a2be
 
 Copie `.env.example` para `.env` e ajuste as URLs conforme o ambiente. Os valores abaixo são os serviços padrão atualmente definidos pelo projeto:
 

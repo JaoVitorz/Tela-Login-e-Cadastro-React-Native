@@ -1,5 +1,5 @@
-import { useCallback, useMemo, useState } from "react";
-import React from "react";
+import { useCallback, useMemo, useState } from 'react';
+import React from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -14,9 +14,9 @@ import {
   StyleSheet,
   Text,
   View,
-} from "react-native";
-import { Href, router, useFocusEffect, useNavigation } from "expo-router";
-import * as ImagePicker from "expo-image-picker";
+} from 'react-native';
+import { Href, router, useFocusEffect, useNavigation } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
 import {
   BriefcaseBusiness,
   CalendarDays,
@@ -33,30 +33,31 @@ import {
   Trash2,
   UserRound,
   X,
-} from "lucide-react-native";
-import { Input } from "@/components/input";
-import { authApi, extractApiErrorMessage } from "@/services/api";
-import { eventsApi } from "@/services/eventsApi";
-import { getProfileErrorMessage, profileApi } from "@/services/profileApi";
+  ShieldCheck,
+  CircleHelp,
+  FileText,
+  LockKeyhole,
+} from 'lucide-react-native';
+import { Input } from '@/components/input';
+import { authApi, extractApiErrorMessage } from '@/services/api';
+import { eventsApi } from '@/services/eventsApi';
+import { getProfileErrorMessage, profileApi } from '@/services/profileApi';
 import {
   getStoredProfileCover,
   persistProfileCover,
   removeStoredProfileCover,
-} from "@/services/profileCoverStore";
+} from '@/services/profileCoverStore';
 import {
   getStoredProfilePhoto,
   persistProfilePhoto,
   setProfilePhoto,
-} from "@/services/profilePhotoStore";
-import { tokenStorage } from "@/services/tokenStorage";
-import { colors } from "@/theme/colors";
-import type { PetEvent } from "@/types/events";
-import type {
-  ProfessionalProfile,
-  ProfessionalProfileUpdate,
-} from "@/types/profile";
+} from '@/services/profilePhotoStore';
+import { tokenStorage } from '@/services/tokenStorage';
+import { colors } from '@/theme/colors';
+import type { PetEvent } from '@/types/events';
+import type { ProfessionalProfile, ProfessionalProfileUpdate } from '@/types/profile';
 
-type ProfileTab = "posts" | "about" | "events";
+type ProfileTab = 'posts' | 'about' | 'events';
 
 interface ProfileView extends ProfessionalProfile {
   email: string;
@@ -79,31 +80,31 @@ interface EditDraft {
 }
 
 const emptyDraft: EditDraft = {
-  nome: "",
-  email: "",
-  bio: "",
-  telefone: "",
-  endereco: "",
-  cidade: "",
-  estado: "",
-  cep: "",
-  numero: "",
-  complemento: "",
-  dataNascimento: "",
+  nome: '',
+  email: '',
+  bio: '',
+  telefone: '',
+  endereco: '',
+  cidade: '',
+  estado: '',
+  cep: '',
+  numero: '',
+  complemento: '',
+  dataNascimento: '',
 };
 
 function roleLabel(type?: string) {
   const labels: Record<string, string> = {
-    tutor: "Tutor de pets",
-    adotante: "Tutor e adotante",
-    cliente: "Membro da comunidade",
-    instituicao: "Instituição / ONG",
-    ong: "Instituição / ONG",
-    clinica: "Clínica veterinária",
-    veterinario: "Profissional veterinário",
-    admin: "Administrador",
+    tutor: 'Tutor de pets',
+    adotante: 'Tutor e adotante',
+    cliente: 'Membro da comunidade',
+    instituicao: 'Instituição / ONG',
+    ong: 'Instituição / ONG',
+    clinica: 'Clínica veterinária',
+    veterinario: 'Profissional veterinário',
+    admin: 'Administrador',
   };
-  return labels[type || ""] || "Membro PetJoyful";
+  return labels[type || ''] || 'Membro PetJoyful';
 }
 
 function initials(name: string) {
@@ -113,7 +114,7 @@ function initials(name: string) {
       .split(/\s+/)
       .slice(0, 2)
       .map((part) => part[0]?.toUpperCase())
-      .join("") || "PJ"
+      .join('') || 'PJ'
   );
 }
 
@@ -124,7 +125,7 @@ function EventPreview({ event }: { event: PetEvent }) {
       style={styles.eventCard}
       onPress={() =>
         router.push({
-          pathname: "/event-details",
+          pathname: '/event-details',
           params: { id: event._id },
         } as unknown as Href)
       }
@@ -138,19 +139,15 @@ function EventPreview({ event }: { event: PetEvent }) {
       )}
       <View style={styles.eventContent}>
         <Text style={styles.eventDate}>
-          {start
-            .toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })
-            .toUpperCase()}
+          {start.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).toUpperCase()}
         </Text>
         <Text style={styles.eventTitle} numberOfLines={2}>
           {event.title}
         </Text>
         <Text style={styles.eventMeta} numberOfLines={1}>
-          {event.location?.address?.toLowerCase() === "online"
-            ? "Online"
-            : [event.location?.city, event.location?.state]
-                .filter(Boolean)
-                .join(" · ")}
+          {event.location?.address?.toLowerCase() === 'online'
+            ? 'Online'
+            : [event.location?.city, event.location?.state].filter(Boolean).join(' · ')}
         </Text>
       </View>
     </Pressable>
@@ -158,13 +155,14 @@ function EventPreview({ event }: { event: PetEvent }) {
 }
 
 export default function ProfessionalProfileScreen() {
-  const rootNavigation = useNavigation("/");
+  const rootNavigation = useNavigation('/');
   const [profile, setProfile] = useState<ProfileView | null>(null);
   const [createdEvents, setCreatedEvents] = useState<PetEvent[]>([]);
-  const [activeTab, setActiveTab] = useState<ProfileTab>("posts");
+  const [activeTab, setActiveTab] = useState<ProfileTab>('posts');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
+  const [profileWarning, setProfileWarning] = useState('');
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [draft, setDraft] = useState<EditDraft>(emptyDraft);
@@ -178,14 +176,15 @@ export default function ProfessionalProfileScreen() {
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [confirmingDeletion, setConfirmingDeletion] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
-  const [deletionError, setDeletionError] = useState("");
+  const [deletionError, setDeletionError] = useState('');
 
   const loadProfile = useCallback(async (refresh = false) => {
     refresh ? setRefreshing(true) : setLoading(true);
-    setError("");
+    setError('');
+    setProfileWarning('');
     try {
       const { user } = await authApi.getProfile();
-      const userId = user.id || user._id || "";
+      const userId = user.id || user._id || '';
       const [professionalResult, eventsResult, storedPhotoResult, coverResult] =
         await Promise.allSettled([
           profileApi.getMyProfile(),
@@ -194,36 +193,32 @@ export default function ProfessionalProfileScreen() {
           getStoredProfileCover(userId),
         ]);
       const professional =
-        professionalResult.status === "fulfilled"
-          ? professionalResult.value
-          : null;
-      const storedPhoto =
-        storedPhotoResult.status === "fulfilled"
-          ? storedPhotoResult.value
-          : null;
-      const resolvedPhoto =
-        professional?.foto_perfil || storedPhoto || undefined;
+        professionalResult.status === 'fulfilled' ? professionalResult.value : null;
+      if (professionalResult.status === 'rejected') {
+        setProfileWarning(
+          `Sua conta está conectada, mas os dados profissionais não puderam ser carregados: ${getProfileErrorMessage(professionalResult.reason)}`,
+        );
+      }
+      const storedPhoto = storedPhotoResult.status === 'fulfilled' ? storedPhotoResult.value : null;
+      const resolvedPhoto = professional?.foto_perfil || storedPhoto || undefined;
       setImageFailed(false);
       setAvatarPreview(null);
       setCoverFailed(false);
       setCoverPreview(null);
-      setCoverUri(coverResult.status === "fulfilled" ? coverResult.value : null);
+      setCoverUri(coverResult.status === 'fulfilled' ? coverResult.value : null);
       setProfilePhoto(resolvedPhoto || null);
-      if (professional?.foto_perfil)
-        void persistProfilePhoto(userId, professional.foto_perfil);
+      if (professional?.foto_perfil) void persistProfilePhoto(userId, professional.foto_perfil);
       setProfile({
         ...(professional || {}),
         userId,
-        nome: professional?.nome || user.nome || "Sua conta",
-        email: professional?.email || user.email || "",
+        nome: user.nome || professional?.nome || 'Sua conta',
+        email: user.email || '',
         foto_perfil: resolvedPhoto,
         authType: user.tipo,
       });
-      if (eventsResult.status === "fulfilled") {
+      if (eventsResult.status === 'fulfilled') {
         setCreatedEvents(
-          eventsResult.value.data.filter(
-            (event) => String(event.organizer) === String(userId),
-          ),
+          eventsResult.value.data.filter((event) => String(event.organizer) === String(userId)),
         );
       }
     } catch (loadError) {
@@ -241,48 +236,39 @@ export default function ProfessionalProfileScreen() {
   );
 
   const participantReach = useMemo(
-    () =>
-      createdEvents.reduce(
-        (total, event) => total + (event.currentParticipants || 0),
-        0,
-      ),
+    () => createdEvents.reduce((total, event) => total + (event.currentParticipants || 0), 0),
     [createdEvents],
   );
 
   function openEditor() {
     if (!profile) return;
     setDraft({
-      nome: profile.nome || "",
-      email: profile.email || "",
-      bio: profile.bio || "",
-      telefone: profile.telefone || "",
-      endereco: profile.endereco || "",
-      cidade: profile.cidade || "",
-      estado: profile.estado || "",
-      cep: profile.cep || "",
-      numero: profile.numero || "",
-      complemento: profile.complemento || "",
-      dataNascimento: profile.data_nascimento
-        ? profile.data_nascimento.slice(0, 10)
-        : "",
+      nome: profile.nome || '',
+      email: profile.email || '',
+      bio: profile.bio || '',
+      telefone: profile.telefone || '',
+      endereco: profile.endereco || '',
+      cidade: profile.cidade || '',
+      estado: profile.estado || '',
+      cep: profile.cep || '',
+      numero: profile.numero || '',
+      complemento: profile.complemento || '',
+      dataNascimento: profile.data_nascimento ? profile.data_nascimento.slice(0, 10) : '',
     });
     setEditing(true);
   }
 
   async function saveProfile() {
     if (!draft.nome.trim() || !draft.email.trim()) {
-      Alert.alert("Campos obrigatórios", "Informe seu nome e e-mail.");
+      Alert.alert('Campos obrigatórios', 'Informe seu nome e e-mail.');
       return;
     }
     if (draft.estado.trim() && draft.estado.trim().length !== 2) {
-      Alert.alert(
-        "UF inválida",
-        "O estado deve conter exatamente duas letras.",
-      );
+      Alert.alert('UF inválida', 'O estado deve conter exatamente duas letras.');
       return;
     }
     if (draft.cep.trim() && !/^\d{5}-?\d{3}$/.test(draft.cep.trim())) {
-      Alert.alert("CEP inválido", "Use o formato 00000-000 ou 00000000.");
+      Alert.alert('CEP inválido', 'Use o formato 00000-000 ou 00000000.');
       return;
     }
     setSaving(true);
@@ -298,22 +284,16 @@ export default function ProfessionalProfileScreen() {
           ...(draft.telefone.trim() ? { telefone: draft.telefone.trim() } : {}),
           ...(draft.endereco.trim() ? { endereco: draft.endereco.trim() } : {}),
           ...(draft.numero.trim() ? { numero: draft.numero.trim() } : {}),
-          ...(draft.complemento.trim()
-            ? { complemento: draft.complemento.trim() }
-            : {}),
+          ...(draft.complemento.trim() ? { complemento: draft.complemento.trim() } : {}),
           ...(draft.cidade.trim() ? { cidade: draft.cidade.trim() } : {}),
-          ...(draft.estado.trim()
-            ? { estado: draft.estado.trim().toUpperCase() }
-            : {}),
+          ...(draft.estado.trim() ? { estado: draft.estado.trim().toUpperCase() } : {}),
           ...(draft.cep.trim() ? { cep: draft.cep.trim() } : {}),
-          ...(draft.dataNascimento.trim()
-            ? { data_nascimento: draft.dataNascimento.trim() }
-            : {}),
+          ...(draft.dataNascimento.trim() ? { data_nascimento: draft.dataNascimento.trim() } : {}),
         };
         await profileApi.updateMyProfile(professionalData);
       } catch (professionalError) {
         Alert.alert(
-          "Dados básicos salvos",
+          'Dados básicos salvos',
           `Nome e e-mail foram atualizados, mas os dados profissionais não puderam ser salvos: ${getProfileErrorMessage(professionalError)}`,
         );
         setEditing(false);
@@ -322,12 +302,9 @@ export default function ProfessionalProfileScreen() {
       }
       setEditing(false);
       await loadProfile(true);
-      Alert.alert(
-        "Perfil atualizado",
-        "Suas informações profissionais foram salvas.",
-      );
+      Alert.alert('Perfil atualizado', 'Suas informações profissionais foram salvas.');
     } catch (saveError) {
-      Alert.alert("Não foi possível salvar", extractApiErrorMessage(saveError));
+      Alert.alert('Não foi possível salvar', extractApiErrorMessage(saveError));
     } finally {
       setSaving(false);
     }
@@ -336,17 +313,17 @@ export default function ProfessionalProfileScreen() {
   async function logout() {
     await tokenStorage.removeToken();
     setProfilePhoto(null);
-    rootNavigation.reset({ index: 0, routes: [{ name: "index" as never }] });
+    rootNavigation.reset({ index: 0, routes: [{ name: 'index' as never }] });
   }
   async function deleteAccount() {
     if (deletingAccount) return;
     setDeletingAccount(true);
-    setDeletionError("");
+    setDeletionError('');
     try {
       await authApi.deleteProfile();
       await tokenStorage.removeToken();
       setProfilePhoto(null);
-      rootNavigation.reset({ index: 0, routes: [{ name: "index" as never }] });
+      rootNavigation.reset({ index: 0, routes: [{ name: 'index' as never }] });
     } catch (deleteError) {
       setDeletionError(extractApiErrorMessage(deleteError));
     } finally {
@@ -354,13 +331,13 @@ export default function ProfessionalProfileScreen() {
     }
   }
   function confirmLogout() {
-    if (Platform.OS === "web") {
-      if (window.confirm("Deseja encerrar sua sessão?")) void logout();
+    if (Platform.OS === 'web') {
+      if (window.confirm('Deseja encerrar sua sessão?')) void logout();
       return;
     }
-    Alert.alert("Sair", "Deseja encerrar sua sessão?", [
-      { text: "Cancelar", style: "cancel" },
-      { text: "Sair", style: "destructive", onPress: logout },
+    Alert.alert('Sair', 'Deseja encerrar sua sessão?', [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Sair', style: 'destructive', onPress: logout },
     ]);
   }
   async function shareProfile() {
@@ -373,19 +350,18 @@ export default function ProfessionalProfileScreen() {
   async function selectAndUploadPhoto() {
     if (uploadingPhoto) return;
     const previousPhoto = profile?.foto_perfil || null;
-    if (Platform.OS !== "web") {
-      const permission =
-        await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (Platform.OS !== 'web') {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permission.granted) {
         Alert.alert(
-          "Permissão necessária",
-          "Autorize o acesso às fotos para escolher uma imagem de perfil.",
+          'Permissão necessária',
+          'Autorize o acesso às fotos para escolher uma imagem de perfil.',
         );
         return;
       }
     }
     const selection = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
+      mediaTypes: ['images'],
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.8,
@@ -393,10 +369,7 @@ export default function ProfessionalProfileScreen() {
     if (selection.canceled) return;
     const asset = selection.assets[0];
     if (asset.fileSize && asset.fileSize > 5 * 1024 * 1024) {
-      Alert.alert(
-        "Imagem muito grande",
-        "Escolha uma imagem com no máximo 5 MB.",
-      );
+      Alert.alert('Imagem muito grande', 'Escolha uma imagem com no máximo 5 MB.');
       return;
     }
     setImageFailed(false);
@@ -407,63 +380,57 @@ export default function ProfessionalProfileScreen() {
       const photoUrl = await profileApi.uploadProfilePhoto({
         uri: asset.uri,
         name: asset.fileName || `perfil-${Date.now()}.jpg`,
-        type: asset.mimeType || "image/jpeg",
+        type: asset.mimeType || 'image/jpeg',
         file: asset.file || undefined,
       });
-      const versionedPhotoUrl = `${photoUrl}${photoUrl.includes("?") ? "&" : "?"}v=${Date.now()}`;
-      await persistProfilePhoto(profile?.userId || "", photoUrl);
+      const versionedPhotoUrl = `${photoUrl}${photoUrl.includes('?') ? '&' : '?'}v=${Date.now()}`;
+      await persistProfilePhoto(profile?.userId || '', photoUrl);
       setImageFailed(false);
       setProfilePhoto(versionedPhotoUrl);
-      setProfile((current) =>
-        current ? { ...current, foto_perfil: versionedPhotoUrl } : current,
-      );
-      Alert.alert("Foto atualizada", "Sua nova foto de perfil foi salva.");
+      setProfile((current) => (current ? { ...current, foto_perfil: versionedPhotoUrl } : current));
+      Alert.alert('Foto atualizada', 'Sua nova foto de perfil foi salva.');
     } catch (photoError) {
       setAvatarPreview(null);
       setProfilePhoto(previousPhoto);
-      Alert.alert(
-        "Não foi possível enviar a foto",
-        getProfileErrorMessage(photoError),
-      );
+      Alert.alert('Não foi possível enviar a foto', getProfileErrorMessage(photoError));
     } finally {
       setUploadingPhoto(false);
     }
   }
 
   function showCoverError(message: string) {
-    if (Platform.OS === "web") window.alert(message);
-    else Alert.alert("Não foi possível alterar a capa", message);
+    if (Platform.OS === 'web') window.alert(message);
+    else Alert.alert('Não foi possível alterar a capa', message);
   }
 
   async function selectCoverPhoto() {
     if (savingCover || !profile?.userId) return;
     try {
-      if (Platform.OS !== "web") {
-        const permission =
-          await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (Platform.OS !== 'web') {
+        const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (!permission.granted) {
-          showCoverError("Autorize o acesso às fotos para escolher uma capa.");
+          showCoverError('Autorize o acesso às fotos para escolher uma capa.');
           return;
         }
       }
       const selection = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ["images"],
+        mediaTypes: ['images'],
         allowsEditing: true,
         aspect: [16, 7],
         quality: 0.7,
       });
       if (selection.canceled) return;
       const asset = selection.assets[0];
-      const type = asset.mimeType || "image/jpeg";
+      const type = asset.mimeType || 'image/jpeg';
       const allowedTypes =
-        Platform.OS === "web"
-          ? ["image/jpeg", "image/png", "image/webp"]
-          : ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"];
+        Platform.OS === 'web'
+          ? ['image/jpeg', 'image/png', 'image/webp']
+          : ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
       if (!allowedTypes.includes(type)) {
-        showCoverError("Escolha uma imagem JPG, PNG ou WebP.");
+        showCoverError('Escolha uma imagem JPG, PNG ou WebP.');
         return;
       }
-      const maxSize = Platform.OS === "web" ? 2 : 5;
+      const maxSize = Platform.OS === 'web' ? 2 : 5;
       if (asset.fileSize && asset.fileSize > maxSize * 1024 * 1024) {
         showCoverError(`Escolha uma imagem com no máximo ${maxSize} MB.`);
         return;
@@ -485,7 +452,7 @@ export default function ProfessionalProfileScreen() {
       showCoverError(
         coverError instanceof Error
           ? coverError.message
-          : "Não foi possível salvar a imagem escolhida.",
+          : 'Não foi possível salvar a imagem escolhida.',
       );
     } finally {
       setSavingCover(false);
@@ -502,9 +469,7 @@ export default function ProfessionalProfileScreen() {
       setCoverFailed(false);
     } catch (coverError) {
       showCoverError(
-        coverError instanceof Error
-          ? coverError.message
-          : "Não foi possível remover a capa.",
+        coverError instanceof Error ? coverError.message : 'Não foi possível remover a capa.',
       );
     } finally {
       setSavingCover(false);
@@ -522,9 +487,7 @@ export default function ProfessionalProfileScreen() {
     return (
       <View style={styles.center}>
         <RefreshCcw size={42} color={colors.error} />
-        <Text style={styles.errorTitle}>
-          Não foi possível carregar o perfil
-        </Text>
+        <Text style={styles.errorTitle}>Não foi possível carregar o perfil</Text>
         <Text style={styles.errorText}>{error}</Text>
         <Pressable style={styles.retryButton} onPress={() => loadProfile()}>
           <Text style={styles.retryText}>Tentar novamente</Text>
@@ -532,7 +495,7 @@ export default function ProfessionalProfileScreen() {
       </View>
     );
 
-  const location = [profile.cidade, profile.estado].filter(Boolean).join(", ");
+  const location = [profile.cidade, profile.estado].filter(Boolean).join(', ');
   const type = roleLabel(profile.tipo_usuario || profile.authType);
   const recentEvents = createdEvents.slice(0, 3);
   const avatarUri = avatarPreview || profile.foto_perfil;
@@ -563,6 +526,20 @@ export default function ProfessionalProfileScreen() {
             <Menu size={22} color={colors.textDark} />
           </Pressable>
         </View>
+        {!!profileWarning && (
+          <Text
+            accessibilityRole="alert"
+            style={{
+              backgroundColor: colors.errorBackground,
+              color: colors.errorText,
+              padding: 16,
+              borderRadius: 12,
+              lineHeight: 22,
+            }}
+          >
+            {profileWarning}
+          </Text>
+        )}
         <View style={styles.cover}>
           {hasCoverImage ? (
             <>
@@ -580,9 +557,7 @@ export default function ProfessionalProfileScreen() {
               <View style={styles.coverCircleLarge} />
               <View style={styles.coverCircleSmall} />
               <Text style={styles.coverBrand}>PET JOYFUL</Text>
-              <Text style={styles.coverSubtitle}>
-                Conectando pessoas que cuidam
-              </Text>
+              <Text style={styles.coverSubtitle}>Conectando pessoas que cuidam</Text>
             </>
           )}
           {hasCoverImage && (
@@ -598,9 +573,7 @@ export default function ProfessionalProfileScreen() {
           )}
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={
-              hasCoverImage ? "Alterar foto de capa" : "Adicionar foto de capa"
-            }
+            accessibilityLabel={hasCoverImage ? 'Alterar foto de capa' : 'Adicionar foto de capa'}
             disabled={savingCover}
             onPress={() => void selectCoverPhoto()}
             style={styles.coverEditButton}
@@ -611,7 +584,7 @@ export default function ProfessionalProfileScreen() {
               <Camera size={16} color={colors.white} />
             )}
             <Text style={styles.coverEditText}>
-              {hasCoverImage ? "Alterar capa" : "Adicionar capa"}
+              {hasCoverImage ? 'Alterar capa' : 'Adicionar capa'}
             </Text>
           </Pressable>
         </View>
@@ -626,9 +599,7 @@ export default function ProfessionalProfileScreen() {
               />
             ) : (
               <View style={styles.avatarFallback}>
-                <Text style={styles.avatarInitials}>
-                  {initials(profile.nome)}
-                </Text>
+                <Text style={styles.avatarInitials}>{initials(profile.nome)}</Text>
               </View>
             )}
             <Pressable
@@ -648,9 +619,7 @@ export default function ProfessionalProfileScreen() {
           <View style={styles.roleRow}>
             <BriefcaseBusiness size={15} color={colors.action} />
             <Text style={styles.role}>{type}</Text>
-            {profile.tipo_usuario && (
-              <CheckCircle2 size={15} color={colors.action} />
-            )}
+            {profile.tipo_usuario && <CheckCircle2 size={15} color={colors.action} />}
           </View>
           {!!profile.bio && (
             <Text style={styles.bio} numberOfLines={3}>
@@ -680,18 +649,16 @@ export default function ProfessionalProfileScreen() {
           </View>
           <View style={styles.statDivider} />
           <View style={styles.stat}>
-            <Text style={styles.statNumber}>
-              {profile.tipo_usuario ? "✓" : "—"}
-            </Text>
+            <Text style={styles.statNumber}>{profile.tipo_usuario ? '✓' : '—'}</Text>
             <Text style={styles.statLabel}>Perfil profissional</Text>
           </View>
         </View>
         <View style={styles.tabs}>
           {(
             [
-              ["posts", "Publicações"],
-              ["about", "Sobre"],
-              ["events", "Eventos"],
+              ['posts', 'Publicações'],
+              ['about', 'Sobre'],
+              ['events', 'Eventos'],
             ] as Array<[ProfileTab, string]>
           ).map(([value, label]) => (
             <Pressable
@@ -699,25 +666,20 @@ export default function ProfessionalProfileScreen() {
               style={[styles.tab, activeTab === value && styles.tabActive]}
               onPress={() => setActiveTab(value)}
             >
-              <Text
-                style={[
-                  styles.tabText,
-                  activeTab === value && styles.tabTextActive,
-                ]}
-              >
+              <Text style={[styles.tabText, activeTab === value && styles.tabTextActive]}>
                 {label}
               </Text>
             </Pressable>
           ))}
         </View>
 
-        {activeTab === "posts" && (
+        {activeTab === 'posts' && (
           <View style={styles.tabContent}>
             <View style={styles.card}>
               <Text style={styles.cardTitle}>Apresentação</Text>
               <Text style={styles.cardText}>
                 {profile.bio ||
-                  "Conte para a comunidade sobre você, seu trabalho e sua relação com os animais."}
+                  'Conte para a comunidade sobre você, seu trabalho e sua relação com os animais.'}
               </Text>
               {!!location && (
                 <View style={styles.detailRow}>
@@ -735,10 +697,7 @@ export default function ProfessionalProfileScreen() {
                 <BriefcaseBusiness size={19} color={colors.textMuted} />
                 <Text style={styles.detailText}>{type}</Text>
               </View>
-              <Pressable
-                style={styles.secondaryFullButton}
-                onPress={openEditor}
-              >
+              <Pressable style={styles.secondaryFullButton} onPress={openEditor}>
                 <Text style={styles.secondaryFullText}>Editar detalhes</Text>
               </Pressable>
             </View>
@@ -746,27 +705,21 @@ export default function ProfessionalProfileScreen() {
               <View style={styles.cardHeader}>
                 <View>
                   <Text style={styles.cardTitle}>Atividade recente</Text>
-                  <Text style={styles.cardSubtitle}>
-                    Eventos publicados por você
-                  </Text>
+                  <Text style={styles.cardSubtitle}>Eventos publicados por você</Text>
                 </View>
               </View>
               {recentEvents.length ? (
-                recentEvents.map((event) => (
-                  <EventPreview key={event._id} event={event} />
-                ))
+                recentEvents.map((event) => <EventPreview key={event._id} event={event} />)
               ) : (
                 <View style={styles.empty}>
                   <CalendarDays size={34} color={colors.action} />
-                  <Text style={styles.emptyTitle}>
-                    Nenhuma publicação ainda
-                  </Text>
+                  <Text style={styles.emptyTitle}>Nenhuma publicação ainda</Text>
                   <Text style={styles.emptyText}>
                     Seus eventos aparecerão aqui como atividade do perfil.
                   </Text>
                   <Pressable
                     style={styles.createButton}
-                    onPress={() => router.push("/event-new" as Href)}
+                    onPress={() => router.push('/event-new' as Href)}
                   >
                     <Text style={styles.createText}>Criar evento</Text>
                   </Pressable>
@@ -776,7 +729,7 @@ export default function ProfessionalProfileScreen() {
           </View>
         )}
 
-        {activeTab === "about" && (
+        {activeTab === 'about' && (
           <View style={styles.card}>
             <View style={styles.cardHeader}>
               <Text style={styles.cardTitle}>Sobre</Text>
@@ -823,15 +776,13 @@ export default function ProfessionalProfileScreen() {
                   <Text style={styles.detailLabel}>Endereço</Text>
                   <Text style={styles.detailValue}>
                     {[
-                      [profile.endereco, profile.numero]
-                        .filter(Boolean)
-                        .join(", "),
+                      [profile.endereco, profile.numero].filter(Boolean).join(', '),
                       profile.complemento,
                       location,
                       profile.cep,
                     ]
                       .filter(Boolean)
-                      .join(" · ")}
+                      .join(' · ')}
                   </Text>
                 </View>
               </View>
@@ -842,10 +793,9 @@ export default function ProfessionalProfileScreen() {
                 <View style={styles.detailCopy}>
                   <Text style={styles.detailLabel}>Data de nascimento</Text>
                   <Text style={styles.detailValue}>
-                    {new Date(profile.data_nascimento).toLocaleDateString(
-                      "pt-BR",
-                      { timeZone: "UTC" },
-                    )}
+                    {new Date(profile.data_nascimento).toLocaleDateString('pt-BR', {
+                      timeZone: 'UTC',
+                    })}
                   </Text>
                 </View>
               </View>
@@ -856,9 +806,9 @@ export default function ProfessionalProfileScreen() {
                 <View style={styles.detailCopy}>
                   <Text style={styles.detailLabel}>Na comunidade desde</Text>
                   <Text style={styles.detailValue}>
-                    {new Date(profile.createdAt).toLocaleDateString("pt-BR", {
-                      month: "long",
-                      year: "numeric",
+                    {new Date(profile.createdAt).toLocaleDateString('pt-BR', {
+                      month: 'long',
+                      year: 'numeric',
                     })}
                   </Text>
                 </View>
@@ -867,32 +817,26 @@ export default function ProfessionalProfileScreen() {
           </View>
         )}
 
-        {activeTab === "events" && (
+        {activeTab === 'events' && (
           <View style={styles.card}>
             <View style={styles.cardHeader}>
               <View>
                 <Text style={styles.cardTitle}>Meus eventos</Text>
-                <Text style={styles.cardSubtitle}>
-                  {createdEvents.length} publicados
-                </Text>
+                <Text style={styles.cardSubtitle}>{createdEvents.length} publicados</Text>
               </View>
               <Pressable
                 style={styles.smallCreateButton}
-                onPress={() => router.push("/event-new" as Href)}
+                onPress={() => router.push('/event-new' as Href)}
               >
                 <Text style={styles.smallCreateText}>+ Novo</Text>
               </Pressable>
             </View>
             {createdEvents.length ? (
-              createdEvents.map((event) => (
-                <EventPreview key={event._id} event={event} />
-              ))
+              createdEvents.map((event) => <EventPreview key={event._id} event={event} />)
             ) : (
               <View style={styles.empty}>
                 <CalendarDays size={38} color={colors.action} />
-                <Text style={styles.emptyTitle}>
-                  Você ainda não criou eventos
-                </Text>
+                <Text style={styles.emptyTitle}>Você ainda não criou eventos</Text>
                 <Text style={styles.emptyText}>
                   Publique sua primeira iniciativa para a comunidade.
                 </Text>
@@ -910,6 +854,28 @@ export default function ProfessionalProfileScreen() {
       >
         <Pressable style={styles.accountMenuBackdrop} onPress={() => setAccountMenuOpen(false)}>
           <Pressable style={styles.accountMenu} onPress={(event) => event.stopPropagation()}>
+            <Text style={[styles.accountMenuText, { padding: 12, color: colors.textMuted }]}>
+              Minha conta
+            </Text>
+            {[
+              { label: 'Segurança e MFA', route: '/seguranca', Icon: ShieldCheck },
+              { label: 'Perguntas frequentes (FAQ)', route: '/faq', Icon: CircleHelp },
+              { label: 'Políticas e normas', route: '/politicas', Icon: FileText },
+              { label: 'Privacidade e LGPD', route: '/privacidade', Icon: LockKeyhole },
+            ].map(({ label, route, Icon }) => (
+              <Pressable
+                key={route}
+                accessibilityRole="button"
+                style={styles.accountMenuItem}
+                onPress={() => {
+                  setAccountMenuOpen(false);
+                  router.push(route as Href);
+                }}
+              >
+                <Icon size={20} color={colors.brandPanel} />
+                <Text style={styles.accountMenuText}>{label}</Text>
+              </Pressable>
+            ))}
             <Pressable
               accessibilityRole="button"
               style={styles.accountMenuItem}
@@ -926,7 +892,7 @@ export default function ProfessionalProfileScreen() {
               style={styles.accountMenuItem}
               onPress={() => {
                 setAccountMenuOpen(false);
-                setDeletionError("");
+                setDeletionError('');
                 setConfirmingDeletion(true);
               }}
             >
@@ -941,7 +907,9 @@ export default function ProfessionalProfileScreen() {
         visible={confirmingDeletion}
         transparent
         animationType="fade"
-        onRequestClose={() => { if (!deletingAccount) setConfirmingDeletion(false); }}
+        onRequestClose={() => {
+          if (!deletingAccount) setConfirmingDeletion(false);
+        }}
       >
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
@@ -949,14 +917,30 @@ export default function ProfessionalProfileScreen() {
             <Text style={styles.deletionDescription}>
               Sua conta será excluída permanentemente. Esta ação não pode ser desfeita.
             </Text>
-            {!!deletionError && <Text accessibilityRole="alert" style={styles.deleteAccountText}>{deletionError}</Text>}
+            {!!deletionError && (
+              <Text accessibilityRole="alert" style={styles.deleteAccountText}>
+                {deletionError}
+              </Text>
+            )}
             <View style={styles.modalActions}>
-              <Pressable accessibilityRole="button" disabled={deletingAccount} style={styles.accountMenuItem} onPress={() => setConfirmingDeletion(false)}>
+              <Pressable
+                accessibilityRole="button"
+                disabled={deletingAccount}
+                style={styles.accountMenuItem}
+                onPress={() => setConfirmingDeletion(false)}
+              >
                 <Text style={styles.accountMenuText}>Cancelar</Text>
               </Pressable>
-              <Pressable accessibilityRole="button" disabled={deletingAccount} style={styles.accountMenuItem} onPress={() => void deleteAccount()}>
+              <Pressable
+                accessibilityRole="button"
+                disabled={deletingAccount}
+                style={styles.accountMenuItem}
+                onPress={() => void deleteAccount()}
+              >
                 {deletingAccount && <ActivityIndicator size="small" color={colors.error} />}
-                <Text style={styles.deleteAccountText}>{deletingAccount ? "Excluindo…" : "Excluir permanentemente"}</Text>
+                <Text style={styles.deleteAccountText}>
+                  {deletingAccount ? 'Excluindo…' : 'Excluir permanentemente'}
+                </Text>
               </Pressable>
             </View>
           </View>
@@ -971,15 +955,13 @@ export default function ProfessionalProfileScreen() {
       >
         <KeyboardAvoidingView
           style={styles.modalBackdrop}
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
               <View>
                 <Text style={styles.modalTitle}>Editar perfil</Text>
-                <Text style={styles.modalSubtitle}>
-                  Atualize sua apresentação profissional
-                </Text>
+                <Text style={styles.modalSubtitle}>Atualize sua apresentação profissional</Text>
               </View>
               <Pressable
                 accessibilityLabel="Fechar"
@@ -989,24 +971,17 @@ export default function ProfessionalProfileScreen() {
                 <X size={22} color={colors.textDark} />
               </Pressable>
             </View>
-            <ScrollView
-              contentContainerStyle={styles.form}
-              keyboardShouldPersistTaps="handled"
-            >
+            <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
               <Input
                 label="Nome *"
                 value={draft.nome}
-                onChangeText={(nome) =>
-                  setDraft((current) => ({ ...current, nome }))
-                }
+                onChangeText={(nome) => setDraft((current) => ({ ...current, nome }))}
                 placeholder="Seu nome ou organização"
               />
               <Input
                 label="E-mail *"
                 value={draft.email}
-                onChangeText={(email) =>
-                  setDraft((current) => ({ ...current, email }))
-                }
+                onChangeText={(email) => setDraft((current) => ({ ...current, email }))}
                 placeholder="contato@exemplo.com"
                 keyboardType="email-address"
                 autoCapitalize="none"
@@ -1014,9 +989,7 @@ export default function ProfessionalProfileScreen() {
               <Input
                 label="Biografia"
                 value={draft.bio}
-                onChangeText={(bio) =>
-                  setDraft((current) => ({ ...current, bio }))
-                }
+                onChangeText={(bio) => setDraft((current) => ({ ...current, bio }))}
                 placeholder="Conte sobre seu trabalho com animais"
                 multiline
                 numberOfLines={4}
@@ -1026,9 +999,7 @@ export default function ProfessionalProfileScreen() {
               <Input
                 label="Telefone"
                 value={draft.telefone}
-                onChangeText={(telefone) =>
-                  setDraft((current) => ({ ...current, telefone }))
-                }
+                onChangeText={(telefone) => setDraft((current) => ({ ...current, telefone }))}
                 placeholder="(00) 00000-0000"
                 keyboardType="phone-pad"
               />
@@ -1045,9 +1016,7 @@ export default function ProfessionalProfileScreen() {
               <Input
                 label="Endereço"
                 value={draft.endereco}
-                onChangeText={(endereco) =>
-                  setDraft((current) => ({ ...current, endereco }))
-                }
+                onChangeText={(endereco) => setDraft((current) => ({ ...current, endereco }))}
                 placeholder="Rua ou avenida"
               />
               <View style={styles.formRow}>
@@ -1055,9 +1024,7 @@ export default function ProfessionalProfileScreen() {
                   <Input
                     label="Número"
                     value={draft.numero}
-                    onChangeText={(numero) =>
-                      setDraft((current) => ({ ...current, numero }))
-                    }
+                    onChangeText={(numero) => setDraft((current) => ({ ...current, numero }))}
                     placeholder="123"
                   />
                 </View>
@@ -1077,9 +1044,7 @@ export default function ProfessionalProfileScreen() {
                   <Input
                     label="Cidade"
                     value={draft.cidade}
-                    onChangeText={(cidade) =>
-                      setDraft((current) => ({ ...current, cidade }))
-                    }
+                    onChangeText={(cidade) => setDraft((current) => ({ ...current, cidade }))}
                     placeholder="Sua cidade"
                   />
                 </View>
@@ -1087,9 +1052,7 @@ export default function ProfessionalProfileScreen() {
                   <Input
                     label="UF"
                     value={draft.estado}
-                    onChangeText={(estado) =>
-                      setDraft((current) => ({ ...current, estado }))
-                    }
+                    onChangeText={(estado) => setDraft((current) => ({ ...current, estado }))}
                     placeholder="SP"
                     maxLength={2}
                     autoCapitalize="characters"
@@ -1099,9 +1062,7 @@ export default function ProfessionalProfileScreen() {
               <Input
                 label="CEP"
                 value={draft.cep}
-                onChangeText={(cep) =>
-                  setDraft((current) => ({ ...current, cep }))
-                }
+                onChangeText={(cep) => setDraft((current) => ({ ...current, cep }))}
                 placeholder="00000-000"
                 keyboardType="numbers-and-punctuation"
               />
@@ -1134,105 +1095,124 @@ export default function ProfessionalProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  accountMenuBackdrop: { flex: 1, backgroundColor: "rgba(0,0,0,.25)", alignItems: "flex-end", padding: 16, paddingTop: 58 },
-  accountMenu: { backgroundColor: colors.white, borderRadius: 14, padding: 8, maxWidth: "100%", elevation: 6 },
-  accountMenuItem: { flexDirection: "row", alignItems: "center", gap: 10, padding: 12, minHeight: 44, flexShrink: 1 },
-  accountMenuText: { color: colors.textDark, fontWeight: "600" },
-  deleteAccountText: { color: colors.error, fontWeight: "700", flexShrink: 1 },
+  accountMenuBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,.25)',
+    alignItems: 'flex-end',
+    padding: 16,
+    paddingTop: 58,
+  },
+  accountMenu: {
+    backgroundColor: colors.white,
+    borderRadius: 14,
+    padding: 8,
+    maxWidth: '100%',
+    elevation: 6,
+  },
+  accountMenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    padding: 12,
+    minHeight: 44,
+    flexShrink: 1,
+  },
+  accountMenuText: { color: colors.textDark, fontWeight: '600' },
+  deleteAccountText: { color: colors.error, fontWeight: '700', flexShrink: 1 },
   deletionDescription: { color: colors.textMuted, lineHeight: 22, marginVertical: 16 },
-  page: { flex: 1, backgroundColor: "#eef1f4" },
+  page: { flex: 1, backgroundColor: '#eef1f4' },
   content: { paddingBottom: 32 },
   topBar: {
     height: 54,
     backgroundColor: colors.white,
     paddingHorizontal: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     borderBottomWidth: 1,
-    borderBottomColor: "#e7e9ec",
+    borderBottomColor: '#e7e9ec',
   },
-  brand: { fontSize: 23, fontWeight: "900", color: colors.brandPanel },
+  brand: { fontSize: 23, fontWeight: '900', color: colors.brandPanel },
   iconButton: {
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: "#edf0f2",
-    alignItems: "center",
-    justifyContent: "center",
+    backgroundColor: '#edf0f2',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   cover: {
     height: 172,
     backgroundColor: colors.brandPanel,
-    overflow: "hidden",
-    alignItems: "center",
-    justifyContent: "center",
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   coverImage: {
-    position: "absolute",
-    width: "100%",
-    height: "100%",
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
   },
   coverShade: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,.12)",
+    backgroundColor: 'rgba(0,0,0,.12)',
   },
   coverEditButton: {
-    position: "absolute",
+    position: 'absolute',
     right: 12,
     bottom: 12,
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 6,
     borderRadius: 16,
-    backgroundColor: "rgba(0,0,0,.62)",
+    backgroundColor: 'rgba(0,0,0,.62)',
     paddingHorizontal: 10,
     minHeight: 32,
   },
   coverEditText: {
     color: colors.white,
     fontSize: 12,
-    fontWeight: "700",
+    fontWeight: '700',
   },
   removeCoverButton: {
-    position: "absolute",
+    position: 'absolute',
     right: 12,
     top: 12,
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: "rgba(0,0,0,.62)",
-    alignItems: "center",
-    justifyContent: "center",
+    backgroundColor: 'rgba(0,0,0,.62)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   coverCircleLarge: {
-    position: "absolute",
+    position: 'absolute',
     width: 240,
     height: 240,
     borderRadius: 120,
-    backgroundColor: "rgba(69,221,131,.12)",
+    backgroundColor: 'rgba(69,221,131,.12)',
     right: -50,
     top: -100,
   },
   coverCircleSmall: {
-    position: "absolute",
+    position: 'absolute',
     width: 130,
     height: 130,
     borderRadius: 65,
-    backgroundColor: "rgba(255,255,255,.07)",
+    backgroundColor: 'rgba(255,255,255,.07)',
     left: -30,
     bottom: -55,
   },
   coverBrand: {
     color: colors.white,
     fontSize: 25,
-    fontWeight: "900",
+    fontWeight: '900',
     letterSpacing: 2,
   },
   coverSubtitle: { color: colors.whiteSoft, fontSize: 12, marginTop: 6 },
   identity: {
     backgroundColor: colors.white,
-    alignItems: "center",
+    alignItems: 'center',
     paddingHorizontal: 18,
     paddingBottom: 18,
   },
@@ -1244,53 +1224,53 @@ const styles = StyleSheet.create({
     padding: 5,
     marginTop: -58,
     elevation: 6,
-    shadowColor: "#000",
+    shadowColor: '#000',
     shadowOpacity: 0.16,
     shadowRadius: 8,
   },
-  avatarImage: { width: "100%", height: "100%", borderRadius: 58 },
+  avatarImage: { width: '100%', height: '100%', borderRadius: 58 },
   avatarFallback: {
     flex: 1,
     borderRadius: 58,
     backgroundColor: colors.primary,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  avatarInitials: { fontSize: 38, color: colors.white, fontWeight: "900" },
+  avatarInitials: { fontSize: 38, color: colors.white, fontWeight: '900' },
   cameraBadge: {
-    position: "absolute",
+    position: 'absolute',
     right: 3,
     bottom: 8,
     width: 34,
     height: 34,
     borderRadius: 17,
     backgroundColor: colors.action,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 3,
     borderColor: colors.white,
   },
   name: {
     fontSize: 26,
-    fontWeight: "900",
+    fontWeight: '900',
     color: colors.textDark,
     marginTop: 10,
-    textAlign: "center",
+    textAlign: 'center',
   },
-  roleRow: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 5 },
-  role: { fontSize: 13, color: colors.loginMuted, fontWeight: "700" },
+  roleRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 5 },
+  role: { fontSize: 13, color: colors.loginMuted, fontWeight: '700' },
   bio: {
     fontSize: 13,
     color: colors.loginMuted,
     lineHeight: 19,
-    textAlign: "center",
+    textAlign: 'center',
     marginTop: 10,
     maxWidth: 340,
   },
   profileActions: {
-    flexDirection: "row",
+    flexDirection: 'row',
     gap: 9,
-    width: "100%",
+    width: '100%',
     marginTop: 16,
   },
   editButton: {
@@ -1298,79 +1278,79 @@ const styles = StyleSheet.create({
     height: 43,
     borderRadius: 9,
     backgroundColor: colors.action,
-    flexDirection: "row",
+    flexDirection: 'row',
     gap: 7,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  editText: { color: colors.white, fontWeight: "800", fontSize: 13 },
+  editText: { color: colors.white, fontWeight: '800', fontSize: 13 },
   shareButton: {
     flex: 1,
     height: 43,
     borderRadius: 9,
-    backgroundColor: "#e8ebee",
-    flexDirection: "row",
+    backgroundColor: '#e8ebee',
+    flexDirection: 'row',
     gap: 7,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  shareText: { color: colors.textDark, fontWeight: "800", fontSize: 13 },
+  shareText: { color: colors.textDark, fontWeight: '800', fontSize: 13 },
   stats: {
     backgroundColor: colors.white,
     marginTop: 8,
     paddingVertical: 15,
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  stat: { flex: 1, alignItems: "center", paddingHorizontal: 4 },
-  statNumber: { fontSize: 19, fontWeight: "900", color: colors.textDark },
+  stat: { flex: 1, alignItems: 'center', paddingHorizontal: 4 },
+  statNumber: { fontSize: 19, fontWeight: '900', color: colors.textDark },
   statLabel: {
     fontSize: 10,
     color: colors.textMuted,
-    fontWeight: "700",
+    fontWeight: '700',
     marginTop: 3,
-    textAlign: "center",
+    textAlign: 'center',
   },
-  statDivider: { height: 34, width: 1, backgroundColor: "#e1e4e7" },
+  statDivider: { height: 34, width: 1, backgroundColor: '#e1e4e7' },
   tabs: {
     backgroundColor: colors.white,
     marginTop: 8,
     paddingHorizontal: 10,
-    flexDirection: "row",
+    flexDirection: 'row',
     borderBottomWidth: 1,
-    borderBottomColor: "#e0e3e6",
+    borderBottomColor: '#e0e3e6',
   },
   tab: {
     flex: 1,
-    alignItems: "center",
+    alignItems: 'center',
     paddingVertical: 14,
     borderBottomWidth: 3,
-    borderBottomColor: "transparent",
+    borderBottomColor: 'transparent',
   },
   tabActive: { borderBottomColor: colors.action },
-  tabText: { fontSize: 12, color: colors.textMuted, fontWeight: "800" },
+  tabText: { fontSize: 12, color: colors.textMuted, fontWeight: '800' },
   tabTextActive: { color: colors.action },
   tabContent: { gap: 9 },
   card: { backgroundColor: colors.white, marginTop: 9, padding: 16, gap: 13 },
   cardHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     gap: 10,
   },
-  cardTitle: { fontSize: 19, color: colors.textDark, fontWeight: "900" },
+  cardTitle: { fontSize: 19, color: colors.textDark, fontWeight: '900' },
   cardSubtitle: { fontSize: 11, color: colors.textMuted, marginTop: 3 },
   cardText: { fontSize: 14, color: colors.loginMuted, lineHeight: 21 },
-  detailRow: { flexDirection: "row", alignItems: "flex-start", gap: 10 },
+  detailRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
   detailText: {
     fontSize: 13,
     color: colors.loginMuted,
     flex: 1,
     lineHeight: 19,
   },
-  detailStrong: { fontWeight: "800", color: colors.textDark },
+  detailStrong: { fontWeight: '800', color: colors.textDark },
   detailCopy: { flex: 1 },
-  detailLabel: { fontSize: 11, color: colors.textMuted, fontWeight: "700" },
+  detailLabel: { fontSize: 11, color: colors.textMuted, fontWeight: '700' },
   detailValue: {
     fontSize: 14,
     color: colors.textDark,
@@ -1380,54 +1360,54 @@ const styles = StyleSheet.create({
   secondaryFullButton: {
     height: 40,
     borderRadius: 8,
-    backgroundColor: "#e8ebee",
-    alignItems: "center",
-    justifyContent: "center",
+    backgroundColor: '#e8ebee',
+    alignItems: 'center',
+    justifyContent: 'center',
     marginTop: 2,
   },
   secondaryFullText: {
     color: colors.textDark,
-    fontWeight: "800",
+    fontWeight: '800',
     fontSize: 13,
   },
   eventCard: {
     borderWidth: 1,
-    borderColor: "#e1e5e2",
+    borderColor: '#e1e5e2',
     borderRadius: 12,
-    overflow: "hidden",
-    flexDirection: "row",
+    overflow: 'hidden',
+    flexDirection: 'row',
     minHeight: 92,
-    backgroundColor: "#fbfcfb",
+    backgroundColor: '#fbfcfb',
   },
-  eventImage: { width: 104, height: "100%", minHeight: 92 },
+  eventImage: { width: 104, height: '100%', minHeight: 92 },
   eventImageFallback: {
     width: 104,
     minHeight: 92,
     backgroundColor: colors.primary,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  eventContent: { flex: 1, padding: 11, justifyContent: "center" },
-  eventDate: { fontSize: 10, color: colors.action, fontWeight: "900" },
+  eventContent: { flex: 1, padding: 11, justifyContent: 'center' },
+  eventDate: { fontSize: 10, color: colors.action, fontWeight: '900' },
   eventTitle: {
     fontSize: 14,
     color: colors.textDark,
-    fontWeight: "800",
+    fontWeight: '800',
     lineHeight: 18,
     marginTop: 3,
   },
   eventMeta: { fontSize: 11, color: colors.textMuted, marginTop: 5 },
-  empty: { alignItems: "center", paddingVertical: 20, gap: 7 },
+  empty: { alignItems: 'center', paddingVertical: 20, gap: 7 },
   emptyTitle: {
     fontSize: 15,
     color: colors.textDark,
-    fontWeight: "800",
-    textAlign: "center",
+    fontWeight: '800',
+    textAlign: 'center',
   },
   emptyText: {
     fontSize: 12,
     color: colors.textMuted,
-    textAlign: "center",
+    textAlign: 'center',
     lineHeight: 18,
   },
   createButton: {
@@ -1437,30 +1417,30 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
     marginTop: 4,
   },
-  createText: { color: colors.white, fontWeight: "800", fontSize: 12 },
+  createText: { color: colors.white, fontWeight: '800', fontSize: 12 },
   smallCreateButton: {
-    backgroundColor: "#e5f7ea",
+    backgroundColor: '#e5f7ea',
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 16,
   },
-  smallCreateText: { color: colors.action, fontSize: 12, fontWeight: "900" },
+  smallCreateText: { color: colors.action, fontSize: 12, fontWeight: '900' },
   aboutSection: {
     fontSize: 12,
     color: colors.textMuted,
-    fontWeight: "900",
-    textTransform: "uppercase",
+    fontWeight: '900',
+    textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginTop: 5,
     paddingBottom: 7,
     borderBottomWidth: 1,
-    borderBottomColor: "#edf0ed",
+    borderBottomColor: '#edf0ed',
   },
   center: {
     flex: 1,
-    backgroundColor: "#eef1f4",
-    alignItems: "center",
-    justifyContent: "center",
+    backgroundColor: '#eef1f4',
+    alignItems: 'center',
+    justifyContent: 'center',
     padding: 28,
     gap: 10,
   },
@@ -1468,10 +1448,10 @@ const styles = StyleSheet.create({
   errorTitle: {
     fontSize: 18,
     color: colors.textDark,
-    fontWeight: "900",
-    textAlign: "center",
+    fontWeight: '900',
+    textAlign: 'center',
   },
-  errorText: { fontSize: 13, color: colors.textMuted, textAlign: "center" },
+  errorText: { fontSize: 13, color: colors.textMuted, textAlign: 'center' },
   retryButton: {
     backgroundColor: colors.action,
     borderRadius: 20,
@@ -1479,69 +1459,69 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     marginTop: 4,
   },
-  retryText: { color: colors.white, fontWeight: "800" },
+  retryText: { color: colors.white, fontWeight: '800' },
   modalBackdrop: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,.48)",
-    justifyContent: "flex-end",
+    backgroundColor: 'rgba(0,0,0,.48)',
+    justifyContent: 'flex-end',
   },
   modalCard: {
-    height: "92%",
-    backgroundColor: "#f7faf7",
+    height: '92%',
+    backgroundColor: '#f7faf7',
     borderTopLeftRadius: 22,
     borderTopRightRadius: 22,
-    overflow: "hidden",
+    overflow: 'hidden',
   },
   modalHeader: {
     backgroundColor: colors.white,
     padding: 18,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: "#e4e7e5",
+    borderBottomColor: '#e4e7e5',
   },
-  modalTitle: { fontSize: 21, color: colors.textDark, fontWeight: "900" },
+  modalTitle: { fontSize: 21, color: colors.textDark, fontWeight: '900' },
   modalSubtitle: { fontSize: 11, color: colors.textMuted, marginTop: 3 },
   closeButton: {
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: "#edf0f2",
-    alignItems: "center",
-    justifyContent: "center",
+    backgroundColor: '#edf0f2',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   form: { padding: 18, gap: 15, paddingBottom: 28 },
-  bioInput: { height: 96, textAlignVertical: "top", paddingTop: 12 },
-  formRow: { flexDirection: "row", gap: 10 },
+  bioInput: { height: 96, textAlignVertical: 'top', paddingTop: 12 },
+  formRow: { flexDirection: 'row', gap: 10 },
   formFlex: { flex: 1 },
   numberField: { width: 100 },
   ufField: { width: 80 },
   modalActions: {
     backgroundColor: colors.white,
     padding: 14,
-    flexDirection: "row",
+    flexDirection: 'row',
     gap: 10,
     borderTopWidth: 1,
-    borderTopColor: "#e4e7e5",
+    borderTopColor: '#e4e7e5',
   },
   cancelButton: {
     flex: 1,
     height: 48,
     borderRadius: 10,
-    backgroundColor: "#e8ebee",
-    alignItems: "center",
-    justifyContent: "center",
+    backgroundColor: '#e8ebee',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  cancelText: { color: colors.textDark, fontWeight: "800" },
+  cancelText: { color: colors.textDark, fontWeight: '800' },
   saveButton: {
     flex: 1.5,
     height: 48,
     borderRadius: 10,
     backgroundColor: colors.action,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  saveText: { color: colors.white, fontWeight: "900" },
+  saveText: { color: colors.white, fontWeight: '900' },
   disabled: { opacity: 0.6 },
 });
