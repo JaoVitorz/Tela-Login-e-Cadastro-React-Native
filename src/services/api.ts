@@ -1,6 +1,9 @@
 import { tokenStorage } from '@/services/tokenStorage';
 import type {
   AuthResponse,
+  MfaChallengeResponse,
+  MfaProof,
+  MfaSetupResponse,
   BackendErrorBody,
   DeleteProfileResponse,
   LoginPayload,
@@ -11,7 +14,7 @@ import type {
   UpdateProfileResponse,
   UserTipoBackend,
 } from '@/types/auth';
-import axios, { AxiosError } from 'axios';
+import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios';
 
 // Backend Principal Pet-Joyful (mesmo backend do frontend Next.js)
 // URL de produção:
@@ -39,6 +42,26 @@ api.interceptors.request.use(async (config) => {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
+});
+
+let refreshInFlight: Promise<string | null> | null = null;
+
+api.interceptors.response.use((response) => response, async (error: AxiosError) => {
+  const original = error.config as (InternalAxiosRequestConfig & { _retried?: boolean }) | undefined;
+  if (error.response?.status !== 401 || !original || original._retried || original.url?.includes('/refresh')) throw error;
+  original._retried = true;
+  if (!refreshInFlight) {
+    refreshInFlight = (async () => {
+      const refreshToken = await tokenStorage.getRefreshToken(); if (!refreshToken) return null;
+      try {
+        const response = await axios.post<{ token: string; refreshToken: string }>(API_URL + "/api/auth/refresh", { refreshToken }, { timeout: 45000 });
+        await tokenStorage.setTokens(response.data.token, response.data.refreshToken); return response.data.token;
+      } catch { await tokenStorage.removeToken(); return null; }
+    })().finally(() => { refreshInFlight = null; });
+  }
+  const token = await refreshInFlight; if (!token) throw error;
+  original.headers = original.headers ?? {}; original.headers.Authorization = "Bearer " + token;
+  return api.request(original);
 });
 
 // Bug conhecido do backend: UserTipo só aceita adotante | cliente | admin
@@ -97,13 +120,21 @@ export const authApi = {
     return response.data;
   },
 
-  async login(data: LoginPayload): Promise<AuthResponse> {
-    const response = await api.post<AuthResponse>('/login', {
+  async login(data: LoginPayload): Promise<AuthResponse | MfaChallengeResponse> {
+    const response = await api.post<AuthResponse | MfaChallengeResponse>('/login', {
       email: data.email.trim().toLowerCase(),
       senha: data.senha,
     });
     return response.data;
   },
+
+  async getMfaStatus(): Promise<{ enabled: boolean }> { return (await api.get('/mfa')).data; },
+  async setupMfa(password: string): Promise<MfaSetupResponse> { return (await api.post('/mfa/setup', { password })).data; },
+  async confirmMfa(code: string): Promise<AuthResponse & { recoveryCodes: string[] }> { return (await api.post('/mfa/confirm', { code })).data; },
+  async verifyMfa(challengeToken: string, proof: { code?: string; recoveryCode?: string }): Promise<AuthResponse> { return (await api.post('/mfa/verify', { challengeToken, ...proof })).data; },
+  async cancelMfaSetup(): Promise<void> { await api.delete('/mfa/setup'); },
+  async disableMfa(proof: MfaProof): Promise<AuthResponse> { return (await api.post('/mfa/disable', proof)).data; },
+  async regenerateMfaCodes(proof: MfaProof): Promise<AuthResponse & { recoveryCodes: string[] }> { return (await api.post('/mfa/recovery-codes', proof)).data; },
 
   async getProfile(): Promise<ProfileResponse> {
     const response = await api.get<ProfileResponse>('/me');

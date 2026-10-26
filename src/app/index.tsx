@@ -21,6 +21,8 @@ import React from "react";
 export default function Index() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [mfaChallengeToken, setMfaChallengeToken] = useState<string | null>(null);
+  const [mfaCode, setMfaCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
   const [hasSession, setHasSession] = useState<boolean | null>(null);
@@ -48,13 +50,25 @@ export default function Index() {
         email: email.trim(),
         senha: password,
       });
-      await tokenStorage.setToken(response.token);
+      if (!("token" in response)) { setMfaChallengeToken(response.challengeToken); return; }
+      await tokenStorage.setTokens(response.token, response.refreshToken);
       router.replace("/(tabs)");
     } catch (error) {
       setLoginError(extractApiErrorMessage(error));
     } finally {
       setLoading(false);
     }
+  }
+
+  async function handleVerifyMfa() {
+    if (!mfaChallengeToken || !/^\d{6}$/.test(mfaCode.trim())) { setLoginError("Informe o código de 6 dígitos do autenticador"); return; }
+    setLoading(true); setLoginError(null);
+    try {
+      const response = await authApi.verifyMfa(mfaChallengeToken, { code: mfaCode.trim() });
+      await tokenStorage.setTokens(response.token, response.refreshToken);
+      router.replace("/(tabs)");
+    } catch (error) { setLoginError(extractApiErrorMessage(error)); }
+    finally { setLoading(false); }
   }
 
   if (hasSession === null) {
@@ -115,14 +129,15 @@ export default function Index() {
                 }}
                 style={styles.formInput}
               />
+              {mfaChallengeToken && <Input placeholder="Código do autenticador" keyboardType="number-pad" maxLength={6} value={mfaCode} onChangeText={setMfaCode} style={styles.formInput} />}
               {loginError && (
                 <Text style={styles.loginError}>{loginError}</Text>
               )}
               <Button
-                label={loading ? "Carregando..." : "Login"}
+                label={loading ? "Carregando..." : mfaChallengeToken ? "Verificar código" : "Login"}
                 variant="login"
                 loading={loading}
-                onPress={handleSignIn}
+                onPress={mfaChallengeToken ? handleVerifyMfa : handleSignIn}
               />
             </View>
 

@@ -1,0 +1,76 @@
+import * as Yup from 'yup';
+
+// Espelha 1:1 src/schema/registroschema.ts do frontend Next.js
+export type TipoRegistro = 'adotante' | 'ong' | 'veterinario';
+
+function isCpfValid(value: string): boolean {
+  const cpf = value.replace(/\D/g, '');
+
+  if (cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) {
+    return false;
+  }
+
+  for (let length = 9; length <= 10; length += 1) {
+    const sum = cpf
+      .slice(0, length)
+      .split('')
+      .reduce((total, digit, index) => total + Number(digit) * (length + 1 - index), 0);
+    const remainder = (sum * 10) % 11;
+    const expectedDigit = remainder === 10 ? 0 : remainder;
+
+    if (Number(cpf[length]) !== expectedDigit) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+export const getRegistroSchema = (tipo: TipoRegistro) => {
+  return Yup.object().shape({
+    nome: Yup.string()
+      .required(tipo === 'ong' ? 'Nome da ONG é obrigatório' : 'Nome é obrigatório')
+      .min(2, 'Mínimo 2 caracteres')
+      .max(80, 'Máximo 80 caracteres'),
+
+    sobrenome: Yup.string()
+      .required(tipo === 'ong' ? 'Responsável é obrigatório' : 'Sobrenome é obrigatório')
+      .min(2, 'Mínimo 2 caracteres')
+      .max(80, 'Máximo 80 caracteres'),
+
+    documento: Yup.string()
+      .required(tipo === 'ong' ? 'CPF do responsável é obrigatório' : 'CPF é obrigatório')
+      .test('valid-document', 'CPF inválido', (value) => {
+        if (!value) return false;
+        const cleanedValue = value.replace(/\D/g, '');
+        return isCpfValid(cleanedValue);
+      }),
+
+    email: Yup.string()
+      .required('E-mail é obrigatório')
+      .email('Digite um e-mail válido')
+      .max(100, 'Máximo 100 caracteres'),
+
+    senha: Yup.string()
+      .required('Senha é obrigatória')
+      .min(8, 'Mínimo 8 caracteres')
+      .matches(
+        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
+        'Deve conter pelo menos: 1 letra maiúscula, 1 minúscula e 1 número',
+      )
+      .max(50, 'Máximo 50 caracteres'),
+
+    confirmarSenha: Yup.string()
+      .required('Confirme sua senha')
+      .oneOf([Yup.ref('senha')], 'As senhas não coincidem'),
+  });
+};
+
+export type RegistroFormValues = {
+  nome: string;
+  sobrenome: string;
+  documento: string;
+  email: string;
+  senha: string;
+  confirmarSenha: string;
+};

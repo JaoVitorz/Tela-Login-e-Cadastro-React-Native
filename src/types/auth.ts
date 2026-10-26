@@ -42,8 +42,17 @@ export interface LoginPayload {
 export interface AuthResponse {
   message?: string;
   token: string;
+  refreshToken?: string;
   user: AuthUser;
 }
+
+export interface MfaChallengeResponse {
+  mfaRequired: true;
+  challengeToken: string;
+}
+
+export interface MfaSetupResponse { secret: string; otpauthUrl: string; expiresAt: string; }
+export interface MfaProof { password: string; code?: string; recoveryCode?: string; }
 
 export interface ProfileResponse {
   user: ProfileUser;
@@ -70,3 +79,5 @@ export interface BackendErrorBody {
   error?: string;
   message?: string;
 }
+
+

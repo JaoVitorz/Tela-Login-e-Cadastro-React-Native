@@ -143,7 +143,7 @@ export default function Signup() {
           : { cpf: values.documento.replace(/\D/g, "") }),
         ...(tipoUsuario === "veterinario" ? { crmv: values.crmv } : {}),
       });
-      await tokenStorage.setToken(response.token);
+      await tokenStorage.setTokens(response.token, response.refreshToken);
       Alert.alert("Conta criada", "Bem-vindo(a) à comunidade PetJoyful!");
       router.replace("/(tabs)");
     } catch (error) {
