@@ -6,6 +6,7 @@ import { CalendarDays, House, PawPrint, UserRound } from "lucide-react-native";
 import { colors } from "@/theme/colors";
 import { profileApi } from "@/services/profileApi";
 import { authApi } from "@/services/api";
+import { HeaderActions } from "@/components/HeaderActions";
 import {
   getStoredProfilePhoto,
   persistProfilePhoto,
@@ -79,6 +80,7 @@ function AuthenticatedTabsLayout() {
       screenOptions={{
         headerStyle: { backgroundColor: colors.brandPanel },
         headerTintColor: colors.white,
+        headerRight: () => <HeaderActions />,
         tabBarActiveTintColor: colors.action,
         tabBarInactiveTintColor: colors.textMuted,
         tabBarStyle: { height: 62, paddingTop: 5 },
@@ -102,6 +104,8 @@ function AuthenticatedTabsLayout() {
       />
       <Tabs.Screen name="eventos" options={{ href: null }} />
       <Tabs.Screen name="eventos-mobile" options={{ href: null }} />
+      <Tabs.Screen name="chat" options={{ href: null, headerShown: false }} />
+      <Tabs.Screen name="notificacoes" options={{ href: null, headerShown: false }} />
       <Tabs.Screen
         name="eventos-integrados"
         options={{
