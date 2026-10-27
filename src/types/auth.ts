@@ -2,11 +2,11 @@
 // (Pet-Joyful-Backend: src/controllers/authController.ts, src/types/index.ts)
 
 // UI: as 3 opções que o usuário escolhe no app (telas de cadastro)
-export type TipoRegistro = "adotante" | "ong" | "veterinario";
+export type TipoRegistro = 'adotante' | 'ong' | 'veterinario';
 
 // Backend: enum UserTipo real (src/types/index.ts). "ong" e "veterinario"
 // NÃO existem aqui ainda — é o bug conhecido que api.ts contorna.
-export type UserTipoBackend = "adotante" | "cliente" | "admin";
+export type UserTipoBackend = 'adotante' | 'cliente' | 'admin';
 
 // Formato de usuário retornado por /register e /login
 export interface AuthUser {
@@ -17,7 +17,7 @@ export interface AuthUser {
 }
 
 // Formato de usuário retornado por GET /me (userModel completo, sem "senha")
-export interface ProfileUser extends Omit<AuthUser, "id"> {
+export interface ProfileUser extends Omit<AuthUser, 'id'> {
   id?: string;
   _id?: string;
   [key: string]: unknown;
@@ -28,10 +28,8 @@ export interface RegisterPayload {
   email: string;
   senha: string;
   tipo: TipoRegistro;
-  // Coletados na UI, mas ainda não persistidos pelo backend.
-  cpf?: string;
-  cnpj?: string;
-  crmv?: string;
+  // Obrigatório no backend para todas as categorias (CPF do responsável da ONG).
+  cpf: string;
 }
 
 export interface LoginPayload {
@@ -51,8 +49,19 @@ export interface MfaChallengeResponse {
   challengeToken: string;
 }
 
-export interface MfaSetupResponse { secret: string; otpauthUrl: string; expiresAt: string; }
-export interface MfaProof { password: string; code?: string; recoveryCode?: string; }
+export type LoginResponse = AuthResponse | MfaChallengeResponse;
+
+export interface MfaProof {
+  password: string;
+  code?: string;
+  recoveryCode?: string;
+}
+
+export interface MfaSetupResponse {
+  secret: string;
+  otpauthUrl: string;
+  expiresAt: string;
+}
 
 export interface ProfileResponse {
   user: ProfileUser;

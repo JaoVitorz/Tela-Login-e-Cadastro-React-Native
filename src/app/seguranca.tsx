@@ -99,14 +99,14 @@ function SecuritySettings() {
       setCodes([]);
       resetProof();
       setAction(null);
-      await tokenStorage.setToken(result.token);
+      await tokenStorage.setTokens(result.token, result.refreshToken);
       setNotice('Verificação em duas etapas desativada.');
     } else if (action === 'regenerate') {
       const result = await authApi.regenerateMfaCodes(proof);
       setCodes(result.recoveryCodes);
       resetProof();
       setAction(null);
-      await tokenStorage.setToken(result.token);
+      await tokenStorage.setTokens(result.token, result.refreshToken);
       setNotice('Novos códigos gerados. Os códigos anteriores foram invalidados.');
     }
   }
