@@ -17,6 +17,7 @@ import {
 } from 'react-native';
 import { Heart, ImagePlus, MessageCircle, PawPrint, Pencil, Trash2, X } from 'lucide-react-native';
 import { postsApi, getPostsErrorMessage } from '@/services/postsApi';
+import { ProfileAvatar } from '@/components/ProfileAvatar';
 import { colors } from '@/theme/colors';
 import type { CommunityPost, PostCategory, PostImageUpload } from '@/types/posts';
 
@@ -80,11 +81,11 @@ function PostCard({
   return (
     <View style={styles.card}>
       <View style={styles.postHeader}>
-        <View style={styles.avatar}>
+        <ProfileAvatar userId={post.autor?.userId} currentUserId={userId} style={styles.avatar}>
           <Text style={styles.avatarText}>
             {(post.autor?.nome || 'U').trim().charAt(0).toUpperCase()}
           </Text>
-        </View>
+        </ProfileAvatar>
         <View style={styles.authorInfo}>
           <Text style={styles.author}>{post.autor?.nome || 'Usuário'}</Text>
           <Text style={styles.date}>{formatDate(post.createdAt)}</Text>
@@ -406,9 +407,9 @@ export function HomeFeed({ authorName, userId }: { authorName: string; userId: s
   return (
     <View style={styles.feed}>
       <Pressable accessibilityRole="button" onPress={openNewPost} style={styles.createCard}>
-        <View style={styles.createAvatar}>
+        <ProfileAvatar userId={userId} currentUserId={userId} style={styles.createAvatar}>
           <PawPrint size={20} color={colors.white} />
-        </View>
+        </ProfileAvatar>
         <Text style={styles.createText}>Compartilhe algo com a comunidade...</Text>
         <ImagePlus size={21} color={colors.action} />
       </Pressable>

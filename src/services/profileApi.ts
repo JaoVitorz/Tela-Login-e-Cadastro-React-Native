@@ -49,6 +49,17 @@ export function getProfileErrorMessage(error: unknown) {
 }
 
 export const profileApi = {
+  async getAvatarUrl(userId: string, isCurrentUser: boolean): Promise<string | null> {
+    const profile = isCurrentUser
+      ? await profileApi.getMyProfile()
+      : (await profileClient.get<ProfileApiResponse<ProfessionalProfile>>(
+          `/${encodeURIComponent(userId)}`,
+        )).data.data;
+    if (!profile?.foto_perfil) return null;
+    const url = new URL(profile.foto_perfil, PROFILE_URL);
+    return url.protocol === "https:" || url.protocol === "http:" ? url.href : null;
+  },
+
   async getMyProfile(): Promise<ProfessionalProfile | null> {
     try {
       const response =
