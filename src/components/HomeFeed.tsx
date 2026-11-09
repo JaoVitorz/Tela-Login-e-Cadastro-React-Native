@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { useFocusEffect } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import {
   ActivityIndicator,
@@ -81,15 +81,28 @@ function PostCard({
   return (
     <View style={styles.card}>
       <View style={styles.postHeader}>
-        <ProfileAvatar userId={post.autor?.userId} currentUserId={userId} style={styles.avatar}>
-          <Text style={styles.avatarText}>
-            {(post.autor?.nome || 'U').trim().charAt(0).toUpperCase()}
-          </Text>
-        </ProfileAvatar>
-        <View style={styles.authorInfo}>
-          <Text style={styles.author}>{post.autor?.nome || 'Usuário'}</Text>
-          <Text style={styles.date}>{formatDate(post.createdAt)}</Text>
-        </View>
+        <Pressable
+          accessibilityRole="link"
+          accessibilityLabel={`Ver perfil de ${post.autor?.nome || 'Usuário'}`}
+          disabled={!post.autor?.userId}
+          onPress={() =>
+            router.push({
+              pathname: '/perfil-usuario',
+              params: { userId: post.autor.userId },
+            })
+          }
+          style={styles.authorLink}
+        >
+          <ProfileAvatar userId={post.autor?.userId} currentUserId={userId} style={styles.avatar}>
+            <Text style={styles.avatarText}>
+              {(post.autor?.nome || 'U').trim().charAt(0).toUpperCase()}
+            </Text>
+          </ProfileAvatar>
+          <View style={styles.authorInfo}>
+            <Text style={styles.author}>{post.autor?.nome || 'Usuário'}</Text>
+            <Text style={styles.date}>{formatDate(post.createdAt)}</Text>
+          </View>
+        </Pressable>
         {category && post.categoria !== 'outros' ? (
           <View style={styles.tag}>
             <Text style={styles.tagText}>{category.label}</Text>
@@ -632,6 +645,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   postHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  authorLink: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44 },
   avatar: {
     width: 40,
     height: 40,

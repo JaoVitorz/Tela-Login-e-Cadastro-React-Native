@@ -18,6 +18,11 @@ export interface ProfessionalProfile {
   updatedAt?: string;
 }
 
+export type CommunityProfile = Pick<
+  ProfessionalProfile,
+  "userId" | "nome" | "foto_perfil" | "bio" | "tipo_usuario" | "cidade" | "estado" | "createdAt"
+>;
+
 export type ProfessionalProfileUpdate = Partial<
   Pick<
     ProfessionalProfile,

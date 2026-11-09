@@ -9,6 +9,7 @@ export default function Layout() {
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="event-new" />
       <Stack.Screen name="event-details" />
+      <Stack.Screen name="perfil-usuario" />
       <Stack.Screen name="seguranca" />
       <Stack.Screen name="faq" />
       <Stack.Screen name="politicas" />
