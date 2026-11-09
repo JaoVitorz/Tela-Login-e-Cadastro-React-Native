@@ -83,13 +83,14 @@ test('renovação e encerramento da sessão notificam os componentes', async () 
   assert.equal(calls, 2);
 });
 
-function apiFixture() {
+function apiFixture({ refreshToken = null } = {}) {
   const calls = [];
   let onRequest,
     onError,
     response = {};
   let token = validToken,
-    removed = 0;
+    removed = 0,
+    refreshReads = 0;
   const client = {
     interceptors: {
       request: {
@@ -111,10 +112,21 @@ function apiFixture() {
     };
   }
   const exported = load('src/services/api.ts', {
-    axios: { create: () => client, isAxiosError: (error) => !!error?.isAxiosError },
+    axios: {
+      create: () => client,
+      isAxiosError: (error) => !!error?.isAxiosError,
+      post: async (url) => {
+        calls.push({ method: 'post', url });
+        throw new Error('Falha na renovação simulada');
+      },
+    },
     '@/services/tokenStorage': {
       tokenStorage: {
         getToken: async () => token,
+        getRefreshToken: async () => {
+          refreshReads++;
+          return refreshToken;
+        },
         removeToken: async () => {
           removed++;
           token = null;
@@ -131,6 +143,7 @@ function apiFixture() {
     request: (config) => onRequest(config),
     reject: (error) => onError(error),
     removed: () => removed,
+    refreshReads: () => refreshReads,
   };
 }
 
@@ -199,7 +212,21 @@ test('somente rejeição da sessão atual encerra a sessão; código MFA errado 
   }
 });
 
-function loginFixture(response) {
+test('MFA: código errado não renova nem apaga sessão antiga ou reenvia a tentativa', async () => {
+  for (const url of ['/mfa/verify', '/mfa/confirm', '/mfa/disable', '/mfa/recovery-codes']) {
+    const f = apiFixture({ refreshToken: 'existing-refresh-token' });
+    const error = {
+      response: { status: 401, data: { error: 'Código inválido' } },
+      config: { url, headers: { Authorization: `Bearer ${validToken}` } },
+    };
+    await assert.rejects(f.reject(error), (caught) => caught === error);
+    assert.equal(f.refreshReads(), 0);
+    assert.equal(f.removed(), 0);
+    assert.deepEqual(f.calls, []);
+  }
+});
+
+function loginFixture(response, verifyMfa = async () => ({ token: validToken })) {
   const state = ['user@example.com', 'Password123', false, null, false, null, '', false];
   let cursor = 0,
     saved = [],
@@ -249,14 +276,14 @@ function loginFixture(response) {
         login: async () => response,
         verifyMfa: async (...args) => {
           verifications.push(args);
-          return { token: validToken };
+          return verifyMfa(...args);
         },
       },
       extractApiErrorMessage: (error) => error.message,
     },
     '@/services/tokenStorage': {
       tokenStorage: {
-        setToken: async (token) => {
+        setTokens: async (token) => {
           if (!token) throw new Error('token ausente');
           saved.push(token);
         },
@@ -303,6 +330,40 @@ test('tela de login: preserva caminho normal sem MFA', async () => {
   assert.deepEqual(f.saved, [validToken]);
   assert.deepEqual(f.navigated, ['/(tabs)']);
 });
+
+for (const recovery of [false, true]) {
+  test(`tela de login: permite corrigir ${recovery ? 'recuperação' : 'TOTP'} após vários códigos errados`, async () => {
+    let attempts = 0;
+    const f = loginFixture({ mfaRequired: true, challengeToken: 'challenge' }, async () => {
+      if (++attempts <= 3) throw new Error('Código inválido');
+      return { token: validToken };
+    });
+    await f.find(f.render(), 'Button').props.onPress();
+    if (recovery) {
+      f.find(f.render(), 'Pressable').props.onPress();
+    }
+    for (let i = 0; i < 4; i++) {
+      const input = f.find(f.render(), 'Input', (props) => props.accessibilityLabel ===
+        (recovery ? 'Código de recuperação' : 'Código do autenticador'));
+      input.props.onChangeText(recovery ? `${i}`.repeat(22) : `${i}`.repeat(6));
+      const button = f.find(f.render(), 'Button');
+      if (i > 0) assert.equal(button.props.label, 'Tentar novamente');
+      await button.props.onPress();
+      if (i < 3) {
+        assert.equal(f.state[5], 'challenge');
+        assert.equal(f.state[2], false);
+        assert.equal(f.state[3], 'Código inválido');
+        assert.deepEqual(f.saved, []);
+        assert.deepEqual(f.navigated, []);
+      }
+    }
+    assert.equal(f.verifications.length, 4);
+    assert.ok(f.verifications.every(([challenge]) => challenge === 'challenge'));
+    assert.equal(f.verifications[3][1][recovery ? 'recoveryCode' : 'code'], recovery ? '3'.repeat(22) : '333333');
+    assert.deepEqual(f.saved, [validToken]);
+    assert.deepEqual(f.navigated, ['/(tabs)']);
+  });
+}
 
 test('tela de login: código incompleto é recusado antes de chamar o backend', async () => {
   const f = loginFixture({ mfaRequired: true, challengeToken: 'challenge' });

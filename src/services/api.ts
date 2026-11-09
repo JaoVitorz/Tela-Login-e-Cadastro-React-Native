@@ -1,7 +1,6 @@
 import { tokenStorage } from '@/services/tokenStorage';
 import type {
   AuthResponse,
-  MfaChallengeResponse,
   MfaProof,
   MfaSetupResponse,
   BackendErrorBody,
@@ -26,6 +25,7 @@ import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios';
 // - Em dispositivo físico, use o IP da sua máquina (ex: http://192.168.0.10:5000).
 const DEFAULT_PROD = 'https://pet-joyful-backend.onrender.com';
 const API_URL = (process.env.EXPO_PUBLIC_API_URL || DEFAULT_PROD).replace(/\/+$/, '');
+const PUBLIC_AUTH_ENDPOINTS = ['/login', '/register', '/mfa/verify'];
 
 export const api = axios.create({
   baseURL: `${API_URL}/api/auth`,
@@ -37,7 +37,7 @@ export const api = axios.create({
 
 // Anexa o token JWT salvo no SecureStore em toda requisição autenticada
 api.interceptors.request.use(async (config) => {
-  if (['/login', '/register', '/mfa/verify'].includes(config.url || '')) return config;
+  if (PUBLIC_AUTH_ENDPOINTS.includes(config.url || '')) return config;
   const token = await tokenStorage.getToken();
   if (token) {
     config.headers = config.headers ?? {};
@@ -53,6 +53,22 @@ api.interceptors.response.use((response) => response, async (error: AxiosError<B
     | (InternalAxiosRequestConfig & { _retried?: boolean })
     | undefined;
   if (error.response?.status !== 401 || !original || original._retried || original.url?.includes('/refresh')) {
+    return Promise.reject(error);
+  }
+
+  const message = error.response.data?.error;
+  const invalidSession = [
+    'Token inválido',
+    'Token ausente ou inválido',
+    'Conta ou sessão indisponível',
+    'Não autenticado',
+  ].includes(message || '');
+  // Um código recusado deve voltar ao formulário sem renovar a sessão
+  // nem reenviar a mesma tentativa automaticamente.
+  if (
+    PUBLIC_AUTH_ENDPOINTS.includes(original.url || '') ||
+    (original.url?.startsWith('/mfa/') && !invalidSession)
+  ) {
     return Promise.reject(error);
   }
 
@@ -83,13 +99,6 @@ api.interceptors.response.use((response) => response, async (error: AxiosError<B
     return api.request(original);
   }
 
-  const message = error.response.data?.error;
-  const invalidSession = [
-    'Token inválido',
-    'Token ausente ou inválido',
-    'Conta ou sessão indisponível',
-    'Não autenticado',
-  ].includes(message || '');
   const currentToken = await tokenStorage.getToken();
   if (invalidSession && currentToken && original.headers?.Authorization === `Bearer ${currentToken}`) {
     await tokenStorage.removeToken();

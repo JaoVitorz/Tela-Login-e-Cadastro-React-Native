@@ -28,6 +28,7 @@ export default function Index() {
   const [challengeToken, setChallengeToken] = useState<string | null>(null);
   const [mfaCode, setMfaCode] = useState('');
   const [useRecovery, setUseRecovery] = useState(false);
+  const [mfaRetry, setMfaRetry] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -77,6 +78,7 @@ export default function Index() {
         setMfaCode('');
         router.replace('/(tabs)');
       } catch (error) {
+        setMfaRetry(true);
         setLoginError(extractApiErrorMessage(error));
       } finally {
         setLoading(false);
@@ -100,6 +102,7 @@ export default function Index() {
         if (!response.challengeToken)
           throw new Error('O servidor não retornou o desafio de autenticação.');
         setChallengeToken(response.challengeToken);
+        setMfaRetry(false);
         setMfaCode('');
         setUseRecovery(false);
         return;
@@ -163,7 +166,8 @@ export default function Index() {
                   </Text>
                   <Text style={{ color: colors.textDark, textAlign: 'center' }}>
                     Digite o código do seu autenticador ou use um código de recuperação. O desafio
-                    expira em 5 minutos.
+                    expira em 5 minutos. Se o código estiver errado, você pode corrigi-lo e tentar
+                    novamente enquanto o desafio estiver válido.
                   </Text>
                   <Input
                     accessibilityLabel={
@@ -178,6 +182,7 @@ export default function Index() {
                     keyboardType={useRecovery ? 'default' : 'number-pad'}
                     autoCapitalize="none"
                     autoCorrect={false}
+                    selectTextOnFocus
                     maxLength={useRecovery ? 22 : 6}
                     onSubmitEditing={() => void handleSignIn()}
                   />
@@ -187,6 +192,7 @@ export default function Index() {
                     style={{ padding: 12 }}
                     onPress={() => {
                       setUseRecovery(!useRecovery);
+                      setMfaRetry(false);
                       setMfaCode('');
                       setLoginError(null);
                     }}
@@ -201,6 +207,7 @@ export default function Index() {
                     style={{ padding: 12 }}
                     onPress={() => {
                       setChallengeToken(null);
+                      setMfaRetry(false);
                       setMfaCode('');
                       setLoginError(null);
                     }}
@@ -235,9 +242,19 @@ export default function Index() {
                   />
                 </>
               )}
-              {loginError && <Text style={styles.loginError}>{loginError}</Text>}
+              {loginError && (
+                <Text accessibilityRole="alert" style={styles.loginError}>
+                  {loginError}
+                </Text>
+              )}
               <Button
-                label={loading ? 'Carregando...' : challengeToken ? 'Verificar e entrar' : 'Login'}
+                label={
+                  loading
+                    ? 'Carregando...'
+                    : challengeToken
+                      ? mfaRetry ? 'Tentar novamente' : 'Verificar e entrar'
+                      : 'Login'
+                }
                 variant="login"
                 loading={loading}
                 onPress={handleSignIn}
