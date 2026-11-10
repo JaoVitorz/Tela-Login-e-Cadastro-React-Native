@@ -51,14 +51,22 @@ async function requireToken() {
 }
 
 export const postsApi = {
-  async getAuthor(userId: string): Promise<{ userId: string; nome: string } | null> {
+  async listByAuthor(userId: string, page = 1, limit = 10): Promise<PostsResponse> {
     const id = userId.trim();
     if (!id) throw new Error('ID do usuário não informado.');
     const response = await postsClient.get<PostsResponse>('', {
-      params: { userId: id, page: 1, limit: 1 },
+      params: { userId: id, page, limit },
     });
-    // Confere o autor mesmo se uma versão antiga do serviço ignorar o filtro.
-    const author = response.data.data?.find((post) => String(post.autor?.userId) === id)?.autor;
+    return {
+      ...response.data,
+      data: response.data.data.filter((post) => String(post.autor?.userId) === id),
+    };
+  },
+
+  async getAuthor(userId: string): Promise<{ userId: string; nome: string } | null> {
+    const id = userId.trim();
+    const response = await postsApi.listByAuthor(id, 1, 1);
+    const author = response.data[0]?.autor;
     return author ? { userId: id, nome: author.nome } : null;
   },
 

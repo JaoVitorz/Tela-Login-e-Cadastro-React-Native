@@ -205,6 +205,8 @@ function reactFixture() {
       children: children.flat(Infinity),
     }),
     useCallback: (fn) => fn,
+    useMemo: (fn) => fn(),
+    useRef: (initial) => React.useState({ current: initial })[0],
     useState: (initial) => {
       const frame = current;
       const index = cursor++;
@@ -295,86 +297,221 @@ test('feed: nome e foto abrem o perfil usando o ID do autor da publicação', ()
     assert.equal(link.props.disabled, !authorId);
     if (authorId) {
       link.props.onPress();
-      assert.equal(destinations[0].pathname, '/perfil-usuario');
-      assert.equal(destinations[0].params.userId, authorId);
+      if (authorId === 'current-user') assert.equal(destinations[0], '/(tabs)/perfil-profissional');
+      else {
+        assert.equal(destinations[0].pathname, '/perfil-usuario');
+        assert.equal(destinations[0].params.userId, authorId);
+      }
     }
   }
 });
 
 function screenFixture({
   userId = 'author',
-  getProfile = async () => null,
-  detailsAvailable = true,
+  getProfile = async () => ({ nome: 'Ana', bio: 'Adoro pets', cidade: 'Santos' }),
 } = {}) {
   const r = reactFixture();
   const calls = [];
-  const screen = load('src/app/perfil-usuario.tsx', {
+  const events = [
+    { _id: 'other-event', organizer: 'author', title: 'Evento da Ana', currentParticipants: 3 },
+    { _id: 'own-event', organizer: 'me', title: 'Meu evento', currentParticipants: 1 },
+  ];
+  const screen = load('src/components/ProfileScreen.tsx', {
     react: r.React,
     'react-native': native,
     'lucide-react-native': icons,
-    'expo-router': { useFocusEffect: r.useFocusEffect, useLocalSearchParams: () => ({ userId }) },
-    '@/components/AccountPage': { AccountPage: 'AccountPage', accountStyles: {} },
-    '@/components/SessionGuard': { SessionGuard: 'SessionGuard' },
+    'expo-router': {
+      useFocusEffect: r.useFocusEffect,
+      useNavigation: () => ({ reset() {} }),
+      router: {},
+    },
+    'expo-image-picker': {},
+    '@/components/input': { Input: 'Input' },
+    '@/components/ProfilePosts': { ProfilePosts: 'ProfilePosts' },
     '@/theme/colors': { colors: {} },
+    '@/services/api': {
+      authApi: {
+        getProfile: async () => {
+          calls.push('own-account');
+          return { user: { id: 'me', nome: 'Meu nome', email: 'me@example.test' } };
+        },
+      },
+      extractApiErrorMessage: (error) => error.message,
+    },
+    '@/services/eventsApi': { eventsApi: { list: async () => ({ data: events }) } },
     '@/services/profileApi': {
       getProfileErrorMessage: (error) => error.message,
+      profileApi: {
+        getMyProfile: async () => {
+          calls.push('own-profile');
+          return { nome: 'Meu nome', foto_perfil: 'my-photo' };
+        },
+      },
     },
     '@/services/communityProfileApi': {
       getCommunityProfile: async (id) => {
         calls.push(id);
         const profile = await getProfile(id);
-        return profile ? { profile, detailsAvailable } : null;
+        return profile ? { profile, detailsAvailable: true } : null;
       },
     },
+    '@/services/profilePhotoStore': {
+      getStoredProfilePhoto: async () => {
+        calls.push('own-photo');
+        return null;
+      },
+      persistProfilePhoto: async () => {
+        calls.push('persist-own-photo');
+      },
+      setProfilePhoto: () => {
+        calls.push('global-photo');
+      },
+    },
+    '@/services/profileCoverStore': {
+      getStoredProfileCover: async () => {
+        calls.push('own-cover');
+        return 'my-cover';
+      },
+    },
+    '@/services/tokenStorage': { tokenStorage: {} },
   });
-  const root = r.render(screen.default);
-  assert.equal(root.type, 'SessionGuard');
-  const child = root.children[0];
-  return { ...r, calls, renderScreen: () => r.render(child.type, child.props) };
+  return {
+    ...r,
+    calls,
+    renderScreen: () => r.render(screen.ProfileScreen, userId === null ? {} : { userId }),
+  };
 }
 
-test('tela: carrega perfil do autor em modo de consulta e usa fallback para nome ausente', async () => {
-  const f = screenFixture({
-    getProfile: async () => ({ nome: '', bio: 'Adoro pets', cidade: 'Santos' }),
-  });
+test('template: visitante usa dados do autor sem carregar conta, capa ou foto do usuário conectado', async () => {
+  const f = screenFixture();
   f.renderScreen();
   f.focus();
   await new Promise(setImmediate);
   assert.deepEqual(f.calls, ['author']);
-  const node = find(f.renderScreen(), (node) => node.type?.name === 'ProfileDetails');
-  const details = f.render(node.type, node.props);
-  const text = JSON.stringify(details);
-  assert.match(text, /Usuário da comunidade/);
+  const tree = f.renderScreen();
+  const text = JSON.stringify(tree);
+  assert.match(text, /Ana/);
   assert.match(text, /Adoro pets/);
   assert.match(text, /Santos/);
-  assert.doesNotMatch(text, /Editar perfil/);
+  assert.match(text, /PET JOYFUL/);
+  assert.match(text, /Apresentação/);
+  assert.equal(find(tree, (node) => node.type === 'ProfilePosts').props.userId, 'author');
+  assert.doesNotMatch(
+    text,
+    /Editar perfil|Editar detalhes|Abrir menu da conta|Alterar foto|Adicionar capa|Excluir conta|Criar evento|Meu nome|me@example.test|my-cover|my-photo/,
+  );
+  assert.equal(
+    find(tree, (node) => node.type === 'Modal'),
+    undefined,
+  );
 });
 
-test('tela: perfil ausente e link inválido têm mensagens específicas', async () => {
-  const missing = screenFixture();
-  missing.renderScreen();
-  missing.focus();
+test('publicações do perfil: paginação mantém o filtro do autor e ignora respostas depois de sair', async () => {
+  const r = reactFixture();
+  const requests = [];
+  const post = (id) => ({ _id: id, titulo: `Publicação ${id}`, likes: [], comentarios: [] });
+  let finish;
+  const { ProfilePosts } = load('src/components/ProfilePosts.tsx', {
+    react: r.React,
+    'react-native': native,
+    'expo-router': { useFocusEffect: r.useFocusEffect },
+    '@/theme/colors': { colors: {} },
+    '@/services/postsApi': {
+      getPostsErrorMessage: (error) => error.message,
+      postsApi: {
+        listByAuthor: async (id, page) => {
+          requests.push({ id, page });
+          if (page === 3)
+            return new Promise((resolve) => {
+              finish = resolve;
+            });
+          return {
+            data: page === 1 ? [post('first')] : [post('first'), post('second')],
+            pagination: { pages: 3 },
+          };
+        },
+      },
+    },
+  });
+  const render = () => r.render(ProfilePosts, { userId: 'author' });
+  render();
+  const cleanup = r.focus();
   await new Promise(setImmediate);
-  assert.match(JSON.stringify(missing.renderScreen()), /Perfil ainda não disponível/);
-  for (const userId of ['', ['one', 'two']]) {
-    const invalid = screenFixture({ userId });
-    invalid.renderScreen();
-    invalid.focus();
-    assert.match(JSON.stringify(invalid.renderScreen()), /link não informa um perfil válido/);
-    assert.deepEqual(invalid.calls, []);
-  }
+  let tree = render();
+  await find(tree, (node) => node.type === 'Pressable').props.onPress();
+  await new Promise(setImmediate);
+  tree = render();
+  assert.equal(requests.length, 2);
+  assert.ok(requests.every((request) => request.id === 'author'));
+  assert.equal(requests[1].page, 2);
+  const labels = content(tree);
+  assert.equal(labels.split('Publicação first').length - 1, 1);
+  assert.match(labels, /Publicação second/);
+  const pending = find(tree, (node) => node.type === 'Pressable').props.onPress();
+  cleanup();
+  finish({ data: [post('stale')], pagination: { pages: 3 } });
+  await pending;
+  await new Promise(setImmediate);
+  assert.doesNotMatch(content(render()), /Publicação stale/);
 });
 
-test('tela: conta sem informações extras exibe nome e explica os campos ausentes', async () => {
-  const f = screenFixture({ getProfile: async () => ({ nome: 'Ana' }), detailsAvailable: false });
+test('template: perfil próprio preserva edição, menu, foto e capa locais', async () => {
+  const f = screenFixture({ userId: null });
   f.renderScreen();
   f.focus();
   await new Promise(setImmediate);
-  const node = find(f.renderScreen(), (node) => node.type?.name === 'ProfileDetails');
-  const text = JSON.stringify(f.render(node.type, node.props));
+  const tree = f.renderScreen();
+  const text = JSON.stringify(tree);
+  assert.match(text, /Meu nome/);
+  assert.match(text, /Editar perfil/);
+  assert.match(text, /Abrir menu da conta/);
+  assert.match(text, /my-cover/);
+  assert.match(text, /PET JOYFUL|my-photo/);
+  assert.equal(find(tree, (node) => node.type === 'ProfilePosts').props.userId, 'me');
+  assert.ok(f.calls.includes('global-photo'));
+  assert.ok(f.calls.includes('own-cover'));
+  assert.ok(!f.calls.includes('author'));
+});
+
+function content(node) {
+  if (typeof node === 'string') return node;
+  return node && typeof node === 'object' ? (node.children || []).map(content).join('') : '';
+}
+
+test('template: abas Sobre e Eventos exibem informações do visitante e eventos do autor correto', async () => {
+  const f = screenFixture();
+  f.renderScreen();
+  f.focus();
+  await new Promise(setImmediate);
+  let tree = f.renderScreen();
+  find(tree, (node) => node.type === 'Pressable' && content(node) === 'Sobre').props.onPress();
+  tree = f.renderScreen();
+  assert.match(content(tree), /Ana/);
+  assert.match(content(tree), /Santos/);
+  assert.doesNotMatch(content(tree), /me@example.test|Editar/);
+  find(tree, (node) => node.type === 'Pressable' && content(node) === 'Eventos').props.onPress();
+  tree = f.renderScreen();
+  assert.match(content(tree), /Eventos de Ana/);
+  assert.equal(
+    find(tree, (node) => node.type?.name === 'EventPreview').props.event._id,
+    'other-event',
+  );
+  assert.equal(
+    find(tree, (node) => node.props.event?._id === 'own-event'),
+    undefined,
+  );
+  assert.doesNotMatch(content(tree), /Novo|Criar evento/);
+});
+
+test('template: perfil básico usa o mesmo visual com campos ainda não preenchidos', async () => {
+  const f = screenFixture({ getProfile: async () => ({ nome: 'Ana' }) });
+  f.renderScreen();
+  f.focus();
+  await new Promise(setImmediate);
+  const text = JSON.stringify(f.renderScreen());
   assert.match(text, /Ana/);
-  assert.match(text, /apenas o nome está disponível/);
-  assert.doesNotMatch(text, /Perfil ainda não disponível/);
+  assert.match(text, /PET JOYFUL/);
+  assert.match(text, /ainda não adicionou uma apresentação/);
 });
 
 test('tela: permite tentar novamente após falha e ignora respostas depois de sair', async () => {
@@ -394,7 +531,7 @@ test('tela: permite tentar novamente após falha e ignora respostas depois de sa
   f.renderScreen();
   f.focus();
   await new Promise(setImmediate);
-  assert.ok(find(f.renderScreen(), (node) => node.type?.name === 'ProfileDetails'));
+  assert.match(content(f.renderScreen()), /Ana/);
 
   let finish;
   const stale = screenFixture({
@@ -408,8 +545,33 @@ test('tela: permite tentar novamente após falha e ignora respostas depois de sa
   cleanup();
   finish({ nome: 'Resposta antiga' });
   await new Promise(setImmediate);
-  assert.equal(
-    find(stale.renderScreen(), (node) => node.type?.name === 'ProfileDetails'),
-    undefined,
-  );
+  assert.doesNotMatch(content(stale.renderScreen()), /Resposta antiga/);
+  assert.deepEqual(stale.calls, ['author']);
+});
+
+test('rotas: perfil próprio e visitante reutilizam o mesmo componente; link inválido não abre conta própria', () => {
+  function SharedProfile() {}
+  const r = reactFixture();
+  const own = load('src/app/(tabs)/perfil-profissional.tsx', {
+    react: r.React,
+    '@/components/ProfileScreen': { ProfileScreen: SharedProfile },
+  });
+  assert.equal(r.render(own.default).type, SharedProfile);
+  for (const userId of ['author', '', ['one', 'two']]) {
+    const other = load('src/app/perfil-usuario.tsx', {
+      react: r.React,
+      'react-native': native,
+      'expo-router': { useLocalSearchParams: () => ({ userId }) },
+      '@/components/ProfileScreen': { ProfileScreen: SharedProfile },
+      '@/components/SessionGuard': { SessionGuard: 'SessionGuard' },
+      '@/components/AccountPage': { AccountPage: 'AccountPage', accountStyles: {} },
+    });
+    const tree = r.render(other.default);
+    const profile = find(tree, (node) => node.type === SharedProfile);
+    if (typeof userId === 'string' && userId) assert.equal(profile.props.userId, 'author');
+    else {
+      assert.equal(profile, undefined);
+      assert.match(content(tree), /link não informa um perfil válido/);
+    }
+  }
 });

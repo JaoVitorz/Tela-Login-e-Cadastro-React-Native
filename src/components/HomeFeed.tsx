@@ -85,12 +85,13 @@ function PostCard({
           accessibilityRole="link"
           accessibilityLabel={`Ver perfil de ${post.autor?.nome || 'Usuário'}`}
           disabled={!post.autor?.userId}
-          onPress={() =>
-            router.push({
+          onPress={() => {
+            if (String(post.autor.userId) === userId) router.push('/(tabs)/perfil-profissional');
+            else router.push({
               pathname: '/perfil-usuario',
               params: { userId: post.autor.userId },
-            })
-          }
+            });
+          }}
           style={styles.authorLink}
         >
           <ProfileAvatar userId={post.autor?.userId} currentUserId={userId} style={styles.avatar}>
