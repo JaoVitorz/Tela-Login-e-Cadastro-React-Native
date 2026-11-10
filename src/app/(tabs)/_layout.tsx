@@ -2,7 +2,7 @@ import { Tabs } from "expo-router";
 import { SessionGuard } from "@/components/SessionGuard";
 import React, { useEffect, useState } from "react";
 import { Image, StyleSheet } from "react-native";
-import { CalendarDays, House, PawPrint, UserRound } from "lucide-react-native";
+import { CalendarDays, House, Sparkles, UserRound } from "lucide-react-native";
 import { colors } from "@/theme/colors";
 import { profileApi } from "@/services/profileApi";
 import { authApi } from "@/services/api";
@@ -96,10 +96,8 @@ function AuthenticatedTabsLayout() {
       <Tabs.Screen
         name="adocoes"
         options={{
-          title: "Adoções",
-          tabBarIcon: ({ color, size }) => (
-            <PawPrint color={color} size={size} />
-          ),
+          title: "Compat. IA",
+          tabBarIcon: ({ color, size }) => <Sparkles color={color} size={size} />,
         }}
       />
       <Tabs.Screen name="eventos" options={{ href: null }} />
